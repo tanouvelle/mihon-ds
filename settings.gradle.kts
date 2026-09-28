@@ -43,3 +43,5 @@ include(":presentation-widget")
 include(":source-api")
 include(":source-local")
 include(":telemetry")
+
+include(":third-party:flexible-adapter")
