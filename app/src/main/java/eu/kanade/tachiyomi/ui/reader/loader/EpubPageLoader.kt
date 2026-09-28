@@ -4,29 +4,100 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Typeface
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
+import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import mihon.core.archive.EpubReader
+import uy.kohesive.injekt.Injekt
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 
-/** Loads EPUB images and paginated text in spine order. */
+/** Presents local EPUB spine content using the existing manga reader's navigation modes. */
 internal class EpubPageLoader(private val reader: EpubReader) : PageLoader() {
     override var isLocal: Boolean = true
 
+    private val preferences = Injekt.get<ReaderPreferences>()
+    private val fontSize = preferences.epubFontSize.get().coerceIn(26, 54).toFloat()
+    private val font = when (preferences.epubFont.get()) {
+        1 -> Typeface.SANS_SERIF
+        2 -> Typeface.MONOSPACE
+        else -> Typeface.SERIF
+    }
+    private val theme = preferences.epubTheme.get()
+    private val lineHeight = fontSize * 1.5f
+    private val maxLines = ((1500f - 110f) / lineHeight).toInt().coerceAtLeast(1)
+
+    private data class Line(val text: String, val bold: Boolean = false)
+    private sealed interface RenderPage {
+        data class Text(val lines: List<Line>) : RenderPage
+        data class Image(val path: String) : RenderPage
+    }
+
     override suspend fun getPages(): List<ReaderPage> {
-        val content = reader.getContent().flatMap { item ->
-            when (item) {
-                is EpubReader.Content.Image -> listOf(item)
-                is EpubReader.Content.Text -> paginate(item.value).map { EpubReader.Content.Text(it) }
+        val pages = mutableListOf<RenderPage>()
+        val lines = mutableListOf<Line>()
+        val paint = textPaint()
+
+        fun flushPage() {
+            if (lines.isNotEmpty()) {
+                pages.add(RenderPage.Text(lines.toList()))
+                lines.clear()
             }
         }
-        return content.mapIndexed { index, item ->
+        fun addLine(line: Line) {
+            if (lines.size == maxLines) flushPage()
+            lines.add(line)
+        }
+        fun addParagraph(value: String, heading: Boolean = false) {
+            if (value.isBlank()) return
+            if (lines.isNotEmpty()) addLine(Line(""))
+            val activePaint = if (heading) textPaint(bold = true) else paint
+            var line = ""
+            value.split(Regex("\\s+")).forEach { word ->
+                var remaining = word
+                while (remaining.isNotEmpty()) {
+                    val candidate = if (line.isEmpty()) remaining else "$line $remaining"
+                    if (activePaint.measureText(candidate) <= 900f) {
+                        line = candidate
+                        break
+                    }
+                    if (line.isNotEmpty()) {
+                        addLine(Line(line, heading))
+                        line = ""
+                    } else {
+                        val count = activePaint.breakText(remaining, true, 900f, null).coerceAtLeast(1)
+                        addLine(Line(remaining.take(count), heading))
+                        remaining = remaining.drop(count)
+                    }
+                }
+            }
+            if (line.isNotEmpty()) addLine(Line(line, heading))
+        }
+
+        val toc = reader.getTableOfContents()
+        if (toc.isNotEmpty()) {
+            addParagraph("Table of contents", heading = true)
+            toc.forEach { addParagraph(it) }
+            flushPage()
+        }
+        reader.getContent().forEach { item ->
+            when (item) {
+                is EpubReader.Content.Text -> addParagraph(item.value, item.heading)
+                is EpubReader.Content.Image -> {
+                    flushPage()
+                    pages.add(RenderPage.Image(item.path))
+                }
+            }
+        }
+        flushPage()
+
+        return pages.mapIndexed { index, item ->
             ReaderPage(index).apply {
                 stream = {
                     when (item) {
-                        is EpubReader.Content.Image -> reader.getInputStream(item.path)!!
-                        is EpubReader.Content.Text -> ByteArrayInputStream(renderText(item.value))
+                        is RenderPage.Image -> reader.getInputStream(item.path)!!
+                        is RenderPage.Text -> ByteArrayInputStream(renderText(item.lines))
                     }
                 }
                 status = Page.State.Ready
@@ -34,45 +105,25 @@ internal class EpubPageLoader(private val reader: EpubReader) : PageLoader() {
         }
     }
 
-    private fun textPaint() = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
-        textSize = 38f
+    private fun textPaint(bold: Boolean = false) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = if (theme == 2) Color.rgb(225, 225, 225) else Color.rgb(35, 32, 29)
+        textSize = fontSize
+        typeface = Typeface.create(font, if (bold) Typeface.BOLD else Typeface.NORMAL)
     }
 
-    private fun paginate(text: String): List<String> {
-        val paint = textPaint()
-        val lines = mutableListOf<String>()
-        var line = ""
-        text.split(Regex("\\s+")).filter(String::isNotBlank).forEach { word ->
-            var remaining = word
-            while (remaining.isNotEmpty()) {
-                val candidate = if (line.isEmpty()) remaining else "$line $remaining"
-                if (paint.measureText(candidate) <= 900f) {
-                    line = candidate
-                    break
-                }
-                if (line.isNotEmpty()) {
-                    lines.add(line)
-                    line = ""
-                } else {
-                    val count = paint.breakText(remaining, true, 900f, null).coerceAtLeast(1)
-                    lines.add(remaining.take(count))
-                    remaining = remaining.drop(count)
-                }
-            }
-        }
-        if (line.isNotEmpty()) lines.add(line)
-        return lines.chunked(25).map { it.joinToString("\n") }
-    }
-
-    private fun renderText(text: String): ByteArray {
+    private fun renderText(lines: List<Line>): ByteArray {
         val bitmap = Bitmap.createBitmap(1080, 1600, Bitmap.Config.RGB_565)
         try {
             val canvas = Canvas(bitmap)
-            canvas.drawColor(Color.WHITE)
-            val paint = textPaint()
-            text.lines().forEachIndexed { index, line ->
-                canvas.drawText(line, 90f, 100f + index * 55f, paint)
+            canvas.drawColor(when (theme) {
+                1 -> Color.rgb(245, 235, 211)
+                2 -> Color.rgb(26, 27, 30)
+                else -> Color.WHITE
+            })
+            val normal = textPaint()
+            val bold = textPaint(bold = true)
+            lines.forEachIndexed { index, line ->
+                canvas.drawText(line.text, 90f, 100f + index * lineHeight, if (line.bold) bold else normal)
             }
             return ByteArrayOutputStream().use { output ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)

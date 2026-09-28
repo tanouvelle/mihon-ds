@@ -1,8 +1,11 @@
 package eu.kanade.presentation.reader.settings
 
 import androidx.activity.compose.LocalActivity
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DisplaySettings
 import androidx.compose.material3.FilterChip
@@ -65,6 +68,39 @@ internal fun ColumnScope.GeneralPage(viewModel: ReaderSettingsViewModel) {
                 selected = readerTheme == value,
                 onClick = { viewModel.preferences.readerTheme.set(value) },
                 label = { Text(stringResource(labelRes)) },
+            )
+        }
+    }
+
+    // EPUB pages are generated when a local chapter opens; reopen it after changing these options.
+    Text("EPUB text (reopen chapter to apply)", style = MaterialTheme.typography.titleMedium)
+    val epubFont by viewModel.preferences.epubFont.collectAsState()
+    Text("Font")
+    Row(Modifier.horizontalScroll(rememberScrollState())) {
+        listOf("Serif", "Sans serif", "Monospace").forEachIndexed { index, label ->
+            FilterChip(
+                selected = epubFont == index,
+                onClick = { viewModel.preferences.epubFont.set(index) },
+                label = { Text(label) },
+            )
+        }
+    }
+    val epubFontSize by viewModel.preferences.epubFontSize.collectAsState()
+    SliderItem(
+        label = "EPUB font size",
+        value = epubFontSize,
+        valueRange = 26..54,
+        steps = 13,
+        onChange = viewModel.preferences.epubFontSize::set,
+    )
+    val epubTheme by viewModel.preferences.epubTheme.collectAsState()
+    Text("Page colour")
+    Row(Modifier.horizontalScroll(rememberScrollState())) {
+        listOf("Paper", "Sepia", "Night").forEachIndexed { index, label ->
+            FilterChip(
+                selected = epubTheme == index,
+                onClick = { viewModel.preferences.epubTheme.set(index) },
+                label = { Text(label) },
             )
         }
     }

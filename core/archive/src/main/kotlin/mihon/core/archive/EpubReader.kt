@@ -36,7 +36,7 @@ class EpubReader(private val reader: ArchiveReader) : Closeable by reader {
 
     /** Reading order of text and images in the EPUB spine. */
     sealed interface Content {
-        data class Text(val value: String) : Content
+        data class Text(val value: String, val heading: Boolean = false) : Content
         data class Image(val path: String) : Content
     }
 
@@ -50,9 +50,9 @@ class EpubReader(private val reader: ArchiveReader) : Closeable by reader {
             val body = document.body() ?: return@forEach
             val imageBase = getParentDirectory(entryPath)
             val paragraph = StringBuilder()
-            fun flush() {
+            fun flush(heading: Boolean = false) {
                 val value = paragraph.toString().trim()
-                if (value.isNotEmpty()) result.add(Content.Text(value))
+                if (value.isNotEmpty()) result.add(Content.Text(value, heading))
                 paragraph.clear()
             }
             fun visit(node: org.jsoup.nodes.Node) {
@@ -69,7 +69,12 @@ class EpubReader(private val reader: ArchiveReader) : Closeable by reader {
                             }
                         }
                         node.childNodes().forEach(::visit)
-                        if (node.normalName() in setOf("p", "div", "h1", "h2", "h3", "h4", "li", "blockquote", "br")) flush()
+                        val tag = node.normalName()
+                        if (tag in setOf("h1", "h2", "h3", "h4", "h5", "h6")) {
+                            flush(heading = true)
+                        } else if (tag in setOf("p", "li", "blockquote", "br")) {
+                            flush()
+                        }
                     }
                 }
             }
@@ -77,6 +82,32 @@ class EpubReader(private val reader: ArchiveReader) : Closeable by reader {
             flush()
         }
         return result
+    }
+
+    /** The navigation document's visible labels, in book order. */
+    fun getTableOfContents(): List<String> {
+        val packageHref = getPackageHref()
+        val manifest = getPackageDocument(packageHref).select("manifest > item")
+        val nav = manifest.firstOrNull { "nav" in it.attr("properties").split(' ') }
+        if (nav != null) {
+            val path = resolveZipPath(getParentDirectory(packageHref), nav.attr("href"))
+            val document = getInputStream(path)?.use { Jsoup.parse(it, null, "") }
+            val toc = document?.select("nav")?.firstOrNull {
+                "toc" in it.attr("epub:type").split(' ') || it.attr("type") == "toc" || it.id() == "toc"
+            }
+            if (toc != null) return toc.select("a").map { it.text().trim() }.filter(String::isNotBlank)
+        }
+        // EPUB 2 uses NCX instead of an XHTML navigation document.
+        val ncx = manifest.firstOrNull { it.attr("media-type") == "application/x-dtbncx+xml" }
+        if (ncx != null) {
+            val path = resolveZipPath(getParentDirectory(packageHref), ncx.attr("href"))
+            return getInputStream(path)?.use { stream ->
+                Jsoup.parse(stream, null, "", Parser.xmlParser())
+                    .select("navPoint > navLabel > text")
+                    .map { it.text().trim() }.filter(String::isNotBlank)
+            } ?: emptyList()
+        }
+        return emptyList()
     }
 
     /**

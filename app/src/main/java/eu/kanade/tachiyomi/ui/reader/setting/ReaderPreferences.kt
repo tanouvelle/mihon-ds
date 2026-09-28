@@ -81,6 +81,12 @@ class ReaderPreferences(
 
     val readerTheme: Preference<Int> = preferenceStore.getInt("pref_reader_theme_key", 1)
 
+    /** Local EPUB typography. Changes take effect when the chapter is reopened. */
+    val epubFont: Preference<Int> = preferenceStore.getInt("reader_epub_font", 0)
+    val epubFontSize: Preference<Int> = preferenceStore.getInt("reader_epub_font_size", 38)
+    val epubTheme: Preference<Int> = preferenceStore.getInt("reader_epub_theme", 0)
+
+
     val alwaysShowChapterTransition: Preference<Boolean> = preferenceStore.getBoolean(
         "always_show_chapter_transition",
         true,
