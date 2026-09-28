@@ -34,6 +34,51 @@ class EpubReader(private val reader: ArchiveReader) : Closeable by reader {
         return getImagesFromPages(pages, ref)
     }
 
+    /** Reading order of text and images in the EPUB spine. */
+    sealed interface Content {
+        data class Text(val value: String) : Content
+        data class Image(val path: String) : Content
+    }
+
+    fun getContent(): List<Content> {
+        val packageHref = getPackageHref()
+        val pages = getPagesFromDocument(getPackageDocument(packageHref))
+        val result = mutableListOf<Content>()
+        pages.forEach { page ->
+            val entryPath = resolveZipPath(getParentDirectory(packageHref), page)
+            val document = getInputStream(entryPath)?.use { Jsoup.parse(it, null, "") } ?: return@forEach
+            val body = document.body() ?: return@forEach
+            val imageBase = getParentDirectory(entryPath)
+            val paragraph = StringBuilder()
+            fun flush() {
+                val value = paragraph.toString().trim()
+                if (value.isNotEmpty()) result.add(Content.Text(value))
+                paragraph.clear()
+            }
+            fun visit(node: org.jsoup.nodes.Node) {
+                when (node) {
+                    is org.jsoup.nodes.TextNode -> paragraph.append(node.text()).append(' ')
+                    is org.jsoup.nodes.Element -> {
+                        when (node.normalName()) {
+                            "script", "style", "nav" -> return
+                            "img", "image" -> {
+                                flush()
+                                val src = node.attr("src").ifBlank { node.attr("xlink:href") }
+                                if (src.isNotBlank()) result.add(Content.Image(resolveZipPath(imageBase, src.substringBefore('#'))))
+                                return
+                            }
+                        }
+                        node.childNodes().forEach(::visit)
+                        if (node.normalName() in setOf("p", "div", "h1", "h2", "h3", "h4", "li", "blockquote", "br")) flush()
+                    }
+                }
+            }
+            body.childNodes().forEach(::visit)
+            flush()
+        }
+        return result
+    }
+
     /**
      * Returns the path to the package document.
      */
