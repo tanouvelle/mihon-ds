@@ -10,6 +10,7 @@ import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import mihon.core.archive.EpubReader
 import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 
