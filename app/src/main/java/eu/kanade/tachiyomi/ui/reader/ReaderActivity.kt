@@ -91,6 +91,8 @@ import eu.kanade.tachiyomi.ui.reader.input.ReaderInputRuntimeDispatchPolicy
 import eu.kanade.tachiyomi.ui.reader.input.ReaderInputRuntimeResolver
 import eu.kanade.tachiyomi.ui.reader.input.ReaderInputTrigger
 import eu.kanade.tachiyomi.ui.reader.loader.EpubPageLoader
+import eu.kanade.tachiyomi.ui.reader.model.EpubBookmark
+import eu.kanade.tachiyomi.ui.reader.model.EpubReadingProgress
 import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
@@ -665,14 +667,47 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
                 )
             }
             is ReaderViewModel.Dialog.Settings -> {
+                val epub = state.currentChapter?.pageLoader as? EpubPageLoader
+                val offsets = epub?.bookmarks?.collectAsState()?.value.orEmpty()
+                val epubBookmarks = offsets.mapNotNull { value ->
+                    val offset = value.toLongOrNull() ?: return@mapNotNull null
+                    val page = epub?.pageForOffset(offset) ?: return@mapNotNull null
+                    EpubBookmark(offset, page)
+                }.sortedBy { it.offset }
+                val returnPage = state.epubReturnPosition?.takeIf {
+                    it.first == state.currentChapter?.chapter?.url
+                }?.second?.let { epub?.pageForOffset(it) }
                 ReaderSettingsDialog(
                     onDismissRequest = onDismissRequest,
                     onShowMenus = { setMenuVisibility(true) },
                     onHideMenus = { setMenuVisibility(false) },
                     viewModel = settingsViewModel,
                     onApplyEpubLayout = viewModel::applyEpubLayout,
-                    epubContents = (state.currentChapter?.pageLoader as? EpubPageLoader)?.contents,
-                    onSelectEpubPage = ::moveToPageIndex,
+                    epubContents = epub?.contents,
+                    epubPreferences = epub?.preferences,
+                    epubCurrentPage = (state.currentPage - 1).coerceAtLeast(0),
+                    epubPageCount = state.currentChapter?.pages?.size ?: 0,
+                    epubBookmarks = epubBookmarks,
+                    onAddEpubBookmark = {
+                        epub?.let {
+                            val offset = it.offsetForPage((state.currentPage - 1).coerceAtLeast(0))
+                            it.bookmarks.set(it.bookmarks.get() + offset.toString())
+                        }
+                    },
+                    onRemoveEpubBookmark = { offset ->
+                        epub?.let { it.bookmarks.set(it.bookmarks.get() - offset.toString()) }
+                    },
+                    epubCanReturn = returnPage != null,
+                    onReturnEpubPage = {
+                        returnPage?.let(::moveToPageIndex)
+                        viewModel.clearEpubReturnPosition()
+                    },
+                    onSelectEpubPage = { index ->
+                        if (index != (state.currentPage - 1).coerceAtLeast(0)) {
+                            viewModel.rememberEpubReturnPosition()
+                            moveToPageIndex(index)
+                        }
+                    },
                 )
             }
             is ReaderViewModel.Dialog.ReadingModeSelect -> {
@@ -972,11 +1007,18 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
         val verticalNavigatorOnLeft by readerPreferences.verticalNavigatorOnLeft.collectAsState()
         val verticalNavigatorHeight by readerPreferences.verticalNavigatorHeight.collectAsState()
 
+        val epubProgress = (state.currentChapter?.pageLoader as? EpubPageLoader)?.let {
+            EpubReadingProgress.calculate(it.contents, state.currentPage - 1, state.currentChapter?.pages?.size ?: 0)
+        }
+        val epubTitle = epubProgress?.let {
+            val title = it.chapter?.title ?: stringResource(MR.strings.epub_front_matter)
+            "$title · " + stringResource(MR.strings.epub_reading_progress, it.page, it.pages, it.percent)
+        }
         ReaderAppBars(
             visible = state.menuVisible,
 
             mangaTitle = state.manga?.title,
-            chapterTitle = state.currentChapter?.chapter?.name,
+            chapterTitle = epubTitle ?: state.currentChapter?.chapter?.name,
             navigateUp = onBackPressedDispatcher::onBackPressed,
             onClickTopAppBar = ::openMangaScreen,
             bookmarked = state.bookmarked,

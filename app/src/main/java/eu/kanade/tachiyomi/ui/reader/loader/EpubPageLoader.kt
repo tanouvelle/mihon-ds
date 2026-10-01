@@ -13,6 +13,7 @@ import android.text.style.StyleSpan
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.ui.reader.model.EpubChapterLink
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
+import eu.kanade.tachiyomi.ui.reader.setting.EpubAppearance
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -25,15 +26,21 @@ import uy.kohesive.injekt.api.get
 /** Renders styled EPUB paragraphs into the existing reader's page and dual-screen pipeline. */
 internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) : PageLoader() {
     override var isLocal: Boolean = true
-    private val preferences = Injekt.get<ReaderPreferences>()
+    val preferences = Injekt.get<ReaderPreferences>().forEpubBook(bookKey)
+    val bookmarks = preferences.epubBookmarks(bookKey)
     private val savedPosition = preferences.epubReadingPosition(bookKey)
     private var layout = newLayout()
     val contents: List<EpubChapterLink> get() = layout.contents
     val backgroundColor: Int get() = layout.background
 
+    fun offsetForPage(index: Int): Long = layout.offsetForPage(index)
+    fun pageForOffset(offset: Long): Int? = layout.pageForOffset(offset)
+
     private fun newLayout() = EpubLayout(reader, preferences) { isRecycled }
 
-    override suspend fun getPages(): List<ReaderPage> = layout.getPages()
+    override suspend fun getPages(): List<ReaderPage> = layout.getPages().also {
+        if (it.isNotEmpty()) layout.appearance.applyTo(preferences)
+    }
 
     // Build off-thread without mutating the layout still displayed by the reader.
     suspend fun prepareLayout(pageIndex: Int): EpubReflow {
@@ -41,7 +48,11 @@ internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) :
         val next = newLayout()
         val pages = next.getPages()
         check(pages.isNotEmpty()) { "EPUB contains no readable pages" }
-        return EpubReflow(pages, next.pageForOffset(offset) ?: 0) { layout = next }
+        return EpubReflow(pages, next.pageForOffset(offset) ?: 0) {
+            layout = next
+            // Materialise every field so later changes to defaults cannot alter this book.
+            next.appearance.applyTo(preferences)
+        }
     }
 
     fun savePosition(pageIndex: Int) {
@@ -67,6 +78,7 @@ private class EpubLayout(
     private val preferences: ReaderPreferences,
     private val isRecycled: () -> Boolean,
 ) {
+    val appearance = EpubAppearance.capture(preferences)
     private val pageOffsets = mutableListOf<Long>()
     private val fontSize = preferences.epubFontSize.get().coerceIn(26, 64).toFloat()
     private val margin = preferences.epubMargin.get().coerceIn(40, 140)

@@ -50,6 +50,14 @@ folder, to check EPUB 2 and EPUB 3 alongside a real novel and an image-only EPUB
 - Try continuous text layout with Webtoon mode; then disable it, apply and test
   single-page and dual-page controls, rotation, and the companion display.
 - Test incognito mode and verify that it does not overwrite the saved EPUB position.
+- Bookmark a page, change typography, apply and jump back. Restart the app and
+  verify bookmarks persist. Remove one and verify other bookmarks remain.
+- Jump through Contents, then use Back to where I was; repeat after a reflow.
+- Check front matter, nested headings, first/last chapter and books without a TOC.
+- Configure two books differently, reopen both and verify their settings stay separate.
+- Save/load day and night presets. Set a new-book default; check a previously opened
+  book retains its appearance and a new book inherits the new default.
+- Toggle EPUB animation and verify manga transition settings remain unchanged.
 - Install the signed APK over the previous working build; verify existing manga,
   downloads, preferences, and backups still work.
 
@@ -61,7 +69,12 @@ footnotes, or full publisher CSS/fixed-layout reproduction. Settings previews up
 immediately; book pages update with Apply to open book. Contents now live in a dedicated
 Contents tab instead of generated pages at the beginning of the book. This
 changes page numbering compared with the experimental build. EPUB position markers
-are local preferences; they are not a cross-device text-location sync protocol.
+and bookmarks are local preferences; they are not a cross-device text-location sync
+protocol. Return history is session-only and keeps the most recent jump origin.
+Bookmarks record the start of a rendered page, not an individually selected word.
+Progress counts the visible TOC section; nested entries form their own sections.
+Moving or replacing a book file can change its key or invalidate stored text offsets.
+Bookmarks are saved only on explicit request, including in incognito mode.
 
 Do not merge/publish until CI and the relevant device checks pass. This patch does
 not increment the app version or publish a release.

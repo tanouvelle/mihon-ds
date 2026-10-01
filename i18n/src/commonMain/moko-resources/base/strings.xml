@@ -1207,6 +1207,22 @@
     <string name="pref_secondary_display_scroll_sensitivity_summary">Sensitivity of scrolling on the secondary display</string>
 
     <!-- Local EPUB reader -->
+    <string name="epub_reading_progress">Page %1$d of %2$d in section · %3$d%% of book</string>
+    <string name="epub_front_matter">Front matter</string>
+    <string name="epub_return">Back to where I was</string>
+    <string name="epub_bookmarks">Bookmarks</string>
+    <string name="epub_add_bookmark">Bookmark this page</string>
+    <string name="epub_remove_bookmark">Remove</string>
+    <string name="epub_no_bookmarks">No bookmarks yet. Saved text positions follow font and layout changes.</string>
+    <string name="epub_current_chapter">Current</string>
+    <string name="epub_book_appearance_hint">Appearance is saved for this book. Apply to update the open pages.</string>
+    <string name="epub_presets">Reading presets</string>
+    <string name="epub_load_day">Load day</string>
+    <string name="epub_load_night">Load night</string>
+    <string name="epub_save_day">Save as day</string>
+    <string name="epub_save_night">Save as night</string>
+    <string name="epub_save_defaults">Use as default for new books</string>
+    <string name="epub_saved">Saved</string>
     <string name="epub_apply">Apply to open book</string>
     <string name="epub_apply_error">Could not update the layout. Your previous pages are still available.</string>
     <string name="epub_reduce_flashing">Suppress page refresh flashes in EPUB books</string>

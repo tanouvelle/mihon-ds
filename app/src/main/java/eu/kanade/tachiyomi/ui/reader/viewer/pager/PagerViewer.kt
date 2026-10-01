@@ -14,6 +14,7 @@ import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
 import eu.kanade.tachiyomi.ui.reader.input.ReaderAction
+import eu.kanade.tachiyomi.ui.reader.loader.EpubPageLoader
 import eu.kanade.tachiyomi.ui.reader.model.ChapterTransition
 import eu.kanade.tachiyomi.ui.reader.model.InsertPage
 import eu.kanade.tachiyomi.ui.reader.model.ReaderItemPair
@@ -26,6 +27,7 @@ import eu.kanade.tachiyomi.ui.reader.panel.matchesPanelKey
 import eu.kanade.tachiyomi.ui.reader.panel.panelPageKey
 import eu.kanade.tachiyomi.ui.reader.viewer.Viewer
 import eu.kanade.tachiyomi.ui.reader.viewer.ViewerNavigation.NavigationRegion
+import kotlin.math.min
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -34,7 +36,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import tachiyomi.core.common.util.system.logcat
 import uy.kohesive.injekt.injectLazy
-import kotlin.math.min
 
 internal enum class PagerReaderActionRoute {
     MOVE_RIGHT,
@@ -709,7 +710,14 @@ abstract class PagerViewer(val activity: ReaderActivity) : Viewer {
             } else {
                 val step = companionPageStep(1)
                 val target = (pager.currentItem + step).coerceAtMost(adapter.count - 1)
-                pager.setCurrentItem(target, config.usePageTransitions)
+                pager.setCurrentItem(
+                    target,
+                    if (adapter.currentChapter?.pageLoader is EpubPageLoader) {
+                        activity.readerPreferences.epubAnimatePages.get()
+                    } else {
+                        config.usePageTransitions
+                    },
+                )
             }
             true
         } else {
@@ -740,7 +748,14 @@ abstract class PagerViewer(val activity: ReaderActivity) : Viewer {
             } else {
                 val step = companionPageStep(-1)
                 val target = (pager.currentItem - step).coerceAtLeast(0)
-                pager.setCurrentItem(target, config.usePageTransitions)
+                pager.setCurrentItem(
+                    target,
+                    if (adapter.currentChapter?.pageLoader is EpubPageLoader) {
+                        activity.readerPreferences.epubAnimatePages.get()
+                    } else {
+                        config.usePageTransitions
+                    },
+                )
             }
             true
         } else {

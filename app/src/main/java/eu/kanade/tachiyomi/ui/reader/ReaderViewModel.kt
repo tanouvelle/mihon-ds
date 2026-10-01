@@ -805,6 +805,17 @@ class ReaderViewModel @JvmOverloads constructor(
         mutableState.update { it.copy(dialog = Dialog.PageActions(page)) }
     }
 
+    fun rememberEpubReturnPosition() {
+        val chapter = state.value.currentChapter ?: return
+        val epub = chapter.pageLoader as? EpubPageLoader ?: return
+        val offset = epub.offsetForPage((state.value.currentPage - 1).coerceAtLeast(0))
+        mutableState.update { it.copy(epubReturnPosition = chapter.chapter.url to offset) }
+    }
+
+    fun clearEpubReturnPosition() {
+        mutableState.update { it.copy(epubReturnPosition = null) }
+    }
+
     fun applyEpubLayout() {
         if (state.value.dialog == Dialog.Loading) return
         val chapter = state.value.currentChapter ?: return
@@ -1012,6 +1023,7 @@ class ReaderViewModel @JvmOverloads constructor(
         val bookmarked: Boolean = false,
         val isLoadingAdjacentChapter: Boolean = false,
         val currentPage: Int = -1,
+        val epubReturnPosition: Pair<String, Long>? = null,
 
         /**
          * Viewer used to display the pages (pager, webtoon, ...).

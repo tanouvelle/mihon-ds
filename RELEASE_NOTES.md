@@ -13,6 +13,13 @@ image reader; text selection, search, annotations and full publisher CSS are not
 included. Contents are now in Settings > Contents, replacing the experimental contents
 pages. See `docs/epub-release-checklist.md` for validation and upgrade notes.
 
+Reading tools now show chapter/section progress and whole-book percentage, highlight
+current contents entries, save bookmarks by text location, and offer a return action
+after navigation jumps. Book appearance is independent, with reusable day/night
+presets and an explicit default-for-new-books action. EPUB page-turn animation can
+be toggled without changing manga transitions. Animation timing uses the existing
+pager; this candidate does not add a speed slider or a page-curl effect.
+
 This candidate requires CI and device verification before a public release.
 
 ---

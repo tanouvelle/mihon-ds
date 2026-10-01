@@ -14,7 +14,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
 import eu.kanade.presentation.components.TabbedDialog
 import eu.kanade.presentation.components.TabbedDialogPaddings
+import eu.kanade.tachiyomi.ui.reader.model.EpubBookmark
 import eu.kanade.tachiyomi.ui.reader.model.EpubChapterLink
+import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderSettingsViewModel
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
@@ -27,6 +29,14 @@ fun ReaderSettingsDialog(
     viewModel: ReaderSettingsViewModel,
     onApplyEpubLayout: () -> Unit = {},
     epubContents: List<EpubChapterLink>? = null,
+    epubPreferences: ReaderPreferences? = null,
+    epubCurrentPage: Int = 0,
+    epubPageCount: Int = 0,
+    epubBookmarks: List<EpubBookmark> = emptyList(),
+    onAddEpubBookmark: () -> Unit = {},
+    onRemoveEpubBookmark: (Long) -> Unit = {},
+    epubCanReturn: Boolean = false,
+    onReturnEpubPage: () -> Unit = {},
     onSelectEpubPage: (Int) -> Unit = {},
 ) {
     val tabTitles = listOf(
@@ -71,8 +81,20 @@ fun ReaderSettingsDialog(
                     0 -> ReadingModePage(viewModel)
                     1 -> GeneralPage(viewModel)
                     2 -> ColorFilterPage(viewModel)
-                    3 -> EpubSettingsPage(viewModel, onApplyEpubLayout)
-                    4 -> EpubContentsPage(epubContents.orEmpty()) { index ->
+                    3 -> EpubSettingsPage(epubPreferences ?: viewModel.preferences, onApplyEpubLayout)
+                    4 -> EpubContentsPage(
+                        contents = epubContents.orEmpty(),
+                        currentPage = epubCurrentPage,
+                        pageCount = epubPageCount,
+                        bookmarks = epubBookmarks,
+                        onAddBookmark = onAddEpubBookmark,
+                        onRemoveBookmark = onRemoveEpubBookmark,
+                        canReturn = epubCanReturn,
+                        onReturn = {
+                            onDismissRequest()
+                            onReturnEpubPage()
+                        },
+                    ) { index ->
                         onDismissRequest()
                         onSelectEpubPage(index)
                     }

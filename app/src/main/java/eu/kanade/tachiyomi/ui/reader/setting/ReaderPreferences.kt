@@ -19,6 +19,7 @@ import tachiyomi.i18n.MR
 class ReaderPreferences(
     private val preferenceStore: PreferenceStore,
     private val json: Json,
+    private val epubBookPrefix: String = "",
 ) {
 
     // region General
@@ -83,22 +84,39 @@ class ReaderPreferences(
 
     val readerTheme: Preference<Int> = preferenceStore.getInt("pref_reader_theme_key", 1)
 
-    /** Local EPUB typography. Changes take effect when the chapter is reopened. */
-    val epubFont: Preference<Int> = preferenceStore.getInt("reader_epub_font", 0)
-    val epubFontSize: Preference<Int> = preferenceStore.getInt("reader_epub_font_size", 38)
-    val epubTheme: Preference<Int> = preferenceStore.getInt("reader_epub_theme", 0)
-    val epubLineSpacing: Preference<Int> = preferenceStore.getInt("reader_epub_line_spacing", 150)
-    val epubParagraphSpacing: Preference<Int> = preferenceStore.getInt("reader_epub_paragraph_spacing", 50)
-    val epubMargin: Preference<Int> = preferenceStore.getInt("reader_epub_margin", 80)
-    val epubCompactPages: Preference<Boolean> = preferenceStore.getBoolean("reader_epub_compact_pages", false)
+    /** EPUB appearance: per-book overrides fall back to the defaults for new books. */
+    val epubFont: Preference<Int> = epubInt("reader_epub_font", 0)
+    val epubFontSize: Preference<Int> = epubInt("reader_epub_font_size", 38)
+    val epubTheme: Preference<Int> = epubInt("reader_epub_theme", 0)
+    val epubLineSpacing: Preference<Int> = epubInt("reader_epub_line_spacing", 150)
+    val epubParagraphSpacing: Preference<Int> = epubInt("reader_epub_paragraph_spacing", 50)
+    val epubMargin: Preference<Int> = epubInt("reader_epub_margin", 80)
+    val epubCompactPages: Preference<Boolean> = preferenceStore.getBoolean(
+        epubBookPrefix + "reader_epub_compact_pages",
+        preferenceStore.getBoolean("reader_epub_compact_pages", false).get(),
+    )
 
-    fun epubReadingPosition(bookKey: String): Preference<String> {
-        val digest = java.security.MessageDigest.getInstance("SHA-256")
-            .digest(bookKey.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
-        return preferenceStore.getString("reader_epub_position_$digest", "")
-    }
+    val epubAnimatePages = preferenceStore.getBoolean("reader_epub_animate_pages", true)
 
+    private fun epubInt(key: String, default: Int): Preference<Int> =
+        preferenceStore.getInt(epubBookPrefix + key, preferenceStore.getInt(key, default).get())
+
+    private fun epubBookId(bookKey: String): String = java.security.MessageDigest.getInstance("SHA-256")
+        .digest(bookKey.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
+
+    fun forEpubBook(bookKey: String) = ReaderPreferences(preferenceStore, json, "epub_${epubBookId(bookKey)}_")
+
+    fun epubReadingPosition(bookKey: String): Preference<String> =
+        preferenceStore.getString("reader_epub_position_${epubBookId(bookKey)}", "")
+
+    fun epubBookmarks(bookKey: String): Preference<Set<String>> =
+        preferenceStore.getStringSet("reader_epub_bookmarks_${epubBookId(bookKey)}", emptySet())
+
+    fun epubPreset(night: Boolean): Preference<String> =
+        preferenceStore.getString(if (night) "reader_epub_night_preset" else "reader_epub_day_preset", "")
+
+    fun saveEpubDefaults() = EpubAppearance.capture(this).applyTo(ReaderPreferences(preferenceStore, json))
 
     val alwaysShowChapterTransition: Preference<Boolean> = preferenceStore.getBoolean(
         "always_show_chapter_transition",
