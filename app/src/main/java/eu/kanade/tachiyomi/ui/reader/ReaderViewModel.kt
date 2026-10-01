@@ -28,6 +28,7 @@ import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.ui.reader.loader.ChapterLoader
 import eu.kanade.tachiyomi.ui.reader.loader.DownloadPageLoader
+import eu.kanade.tachiyomi.ui.reader.loader.EpubPageLoader
 import eu.kanade.tachiyomi.ui.reader.model.InsertPage
 import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
@@ -252,7 +253,8 @@ class ReaderViewModel @JvmOverloads constructor(
                     currentChapter.requestedPage = chapterPageIndex
                     currentChapter.requestedPageFromResume = true
                 } else if (!currentChapter.chapter.read) {
-                    currentChapter.requestedPage = currentChapter.chapter.last_page_read
+                    currentChapter.requestedPage = (currentChapter.pageLoader as? EpubPageLoader)?.restoredPageIndex()
+                        ?: currentChapter.chapter.last_page_read
                     currentChapter.requestedPageFromResume = true
                 }
                 chapterId = currentChapter.chapter.id!!
@@ -548,6 +550,7 @@ class ReaderViewModel @JvmOverloads constructor(
         chapterPageIndex = pageIndex
 
         if (!incognitoMode && page.status !is Page.State.Error) {
+            (readerChapter.pageLoader as? EpubPageLoader)?.savePosition(pageIndex)
             readerChapter.chapter.last_page_read = pageIndex
 
             if (readerChapter.pages?.lastIndex == pageIndex) {

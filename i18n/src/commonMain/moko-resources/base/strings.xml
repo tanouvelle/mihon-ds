@@ -1205,4 +1205,30 @@
 
     <string name="pref_secondary_display_scroll_sensitivity">Secondary display scroll sensitivity</string>
     <string name="pref_secondary_display_scroll_sensitivity_summary">Sensitivity of scrolling on the secondary display</string>
+
+    <!-- Local EPUB reader -->
+    <string name="epub_settings">EPUB</string>
+    <string name="epub_contents">Contents</string>
+    <string name="epub_font">Font</string>
+    <string name="epub_font_serif">Serif</string>
+    <string name="epub_font_sans">Sans serif</string>
+    <string name="epub_font_mono">Monospace</string>
+    <string name="epub_font_size">Text size</string>
+    <string name="epub_line_spacing">Line spacing</string>
+    <string name="epub_paragraph_spacing">Paragraph spacing</string>
+    <string name="epub_margins">Side margins</string>
+    <string name="epub_page_colour">Page colour</string>
+    <string name="epub_theme_paper">White</string>
+    <string name="epub_theme_sepia">Sepia</string>
+    <string name="epub_theme_night">Night</string>
+    <string name="epub_theme_black">Black</string>
+    <string name="epub_compact_pages">Continuous text layout</string>
+    <string name="epub_reopen_hint">Reopen the book to apply layout changes. Page numbers may change when text is resized.</string>
+    <string name="epub_continuous_hint">Continuous text layout removes the top and bottom margins between text pages. Use Webtoon mode for seamless vertical scrolling, or a paged mode for page turns.</string>
+    <string name="epub_reset">Reset EPUB appearance</string>
+    <string name="epub_preview">The quiet room was filled with stories, each waiting for a reader.</string>
+    <string name="epub_no_contents">This book has no navigable contents or headings.</string>
+    <string name="epub_contents_page">Page %1$d</string>
+    <string name="epub_layout">Text layout</string>
+    <string name="epub_preview_label">Preview</string>
 </resources>

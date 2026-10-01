@@ -1,3 +1,20 @@
+# EPUB reader polish — release candidate
+
+This candidate adds a dedicated EPUB settings tab with a tappable table of contents,
+font and spacing controls, margins, four page colours, an appearance preview and a
+reset action. Text now preserves bold, italic, lists and line breaks, with improved
+wrapping and punctuation spacing. Continuous text layout removes page-edge margins
+for scrolling. Reading position follows the text when typography changes.
+
+Reopen the book after changing layout settings. EPUB text still uses the existing
+image reader; text selection, search, annotations and full publisher CSS are not
+included. Contents are now in Settings > EPUB, replacing the experimental contents
+pages. See `docs/epub-release-checklist.md` for validation and upgrade notes.
+
+This candidate requires CI and device verification before a public release.
+
+---
+
 # Mihon DS 0.2.4
 
 > **Credits.** Mihon DS is not my work. The dual-screen fork was created by

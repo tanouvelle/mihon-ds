@@ -1,7 +1,7 @@
 name: Build APK
 on:
   push:
-    branches: [main, "upgrade/**"]
+    branches: [main, "upgrade/**", "feature/epub-text-pages"]
   workflow_dispatch:
 
 permissions:
@@ -20,13 +20,15 @@ jobs:
       # Ahead of the build, so a release is never published on a red suite. The suite had been
       # uncompilable since July without anyone noticing, because nothing here ever ran it.
       - name: Run unit tests
-        run: ./gradlew :app:testDebugUnitTest
+        run: ./gradlew :core:archive:testDebugUnitTest :app:testDebugUnitTest
       - name: Upload test report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-report
-          path: app/build/reports/tests/testDebugUnitTest
+          path: |
+            app/build/reports/tests/testDebugUnitTest
+            core/archive/build/reports/tests/testDebugUnitTest
           retention-days: 7
       # Signed with a real keystore when the secrets are present, so releases update over
       # each other. Without them the build falls back to a per-run generated debug key, which

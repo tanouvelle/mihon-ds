@@ -54,7 +54,8 @@ class ChapterLoader(
                 // If the chapter is partially read, set the starting page to the last the user read
                 // otherwise use the requested page.
                 if (!chapter.chapter.read) {
-                    chapter.requestedPage = chapter.chapter.last_page_read
+                    chapter.requestedPage = (loader as? EpubPageLoader)?.restoredPageIndex()
+                        ?: chapter.chapter.last_page_read.coerceIn(0, pages.lastIndex)
                 }
 
                 chapter.state = ReaderChapter.State.Loaded(pages)
@@ -97,7 +98,7 @@ class ChapterLoader(
                 when (format) {
                     is Format.Directory -> DirectoryPageLoader(format.file)
                     is Format.Archive -> ArchivePageLoader(format.file.archiveReader(context))
-                    is Format.Epub -> EpubPageLoader(format.file.epubReader(context))
+                    is Format.Epub -> EpubPageLoader(format.file.epubReader(context), dbChapter.url)
                 }
             }
             source is HttpSource -> HttpPageLoader(chapter, source)

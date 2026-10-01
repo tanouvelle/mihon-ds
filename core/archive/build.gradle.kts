@@ -13,4 +13,7 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.archive)
     implementation(libs.unifile)
+
+    testImplementation(libs.bundles.test)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }

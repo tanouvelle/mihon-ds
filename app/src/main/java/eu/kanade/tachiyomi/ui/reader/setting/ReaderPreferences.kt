@@ -85,6 +85,17 @@ class ReaderPreferences(
     val epubFont: Preference<Int> = preferenceStore.getInt("reader_epub_font", 0)
     val epubFontSize: Preference<Int> = preferenceStore.getInt("reader_epub_font_size", 38)
     val epubTheme: Preference<Int> = preferenceStore.getInt("reader_epub_theme", 0)
+    val epubLineSpacing: Preference<Int> = preferenceStore.getInt("reader_epub_line_spacing", 150)
+    val epubParagraphSpacing: Preference<Int> = preferenceStore.getInt("reader_epub_paragraph_spacing", 50)
+    val epubMargin: Preference<Int> = preferenceStore.getInt("reader_epub_margin", 80)
+    val epubCompactPages: Preference<Boolean> = preferenceStore.getBoolean("reader_epub_compact_pages", false)
+
+    fun epubReadingPosition(bookKey: String): Preference<String> {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(bookKey.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        return preferenceStore.getString("reader_epub_position_$digest", "")
+    }
 
 
     val alwaysShowChapterTransition: Preference<Boolean> = preferenceStore.getBoolean(

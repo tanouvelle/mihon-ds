@@ -39,7 +39,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -91,6 +90,7 @@ import eu.kanade.tachiyomi.ui.reader.input.ReaderInputMotionEventLatch
 import eu.kanade.tachiyomi.ui.reader.input.ReaderInputRuntimeDispatchPolicy
 import eu.kanade.tachiyomi.ui.reader.input.ReaderInputRuntimeResolver
 import eu.kanade.tachiyomi.ui.reader.input.ReaderInputTrigger
+import eu.kanade.tachiyomi.ui.reader.loader.EpubPageLoader
 import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
@@ -136,6 +136,7 @@ import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import androidx.compose.ui.graphics.Color as ComposeColor
 
 class ReaderActivity : BaseActivity(), ReaderActionTarget {
 
@@ -668,6 +669,8 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
                     onShowMenus = { setMenuVisibility(true) },
                     onHideMenus = { setMenuVisibility(false) },
                     viewModel = settingsViewModel,
+                    epubContents = (state.currentChapter?.pageLoader as? EpubPageLoader)?.contents,
+                    onSelectEpubPage = ::moveToPageIndex,
                 )
             }
             is ReaderViewModel.Dialog.ReadingModeSelect -> {

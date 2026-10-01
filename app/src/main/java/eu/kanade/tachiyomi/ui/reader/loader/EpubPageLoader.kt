@@ -3,102 +3,166 @@ package eu.kanade.tachiyomi.ui.reader.loader
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
 import android.graphics.Typeface
+import android.text.Layout
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.StaticLayout
+import android.text.TextPaint
+import android.text.style.StyleSpan
 import eu.kanade.tachiyomi.source.model.Page
+import eu.kanade.tachiyomi.ui.reader.model.EpubChapterLink
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.ensureActive
 import mihon.core.archive.EpubReader
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 
-/** Presents local EPUB spine content using the existing manga reader's navigation modes. */
-internal class EpubPageLoader(private val reader: EpubReader) : PageLoader() {
+/** Renders styled EPUB paragraphs into the existing reader's page and dual-screen pipeline. */
+internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) : PageLoader() {
     override var isLocal: Boolean = true
-
     private val preferences = Injekt.get<ReaderPreferences>()
-    private val fontSize = preferences.epubFontSize.get().coerceIn(26, 54).toFloat()
+    private val savedPosition = preferences.epubReadingPosition(bookKey)
+    private val pageOffsets = mutableListOf<Long>()
+    private val fontSize = preferences.epubFontSize.get().coerceIn(26, 64).toFloat()
+    private val margin = preferences.epubMargin.get().coerceIn(40, 140)
+    private val lineSpacing = preferences.epubLineSpacing.get().coerceIn(110, 200) / 100f
+    private val paragraphSpacing = preferences.epubParagraphSpacing.get().coerceIn(0, 100) / 100f
+    private val theme = preferences.epubTheme.get()
     private val font = when (preferences.epubFont.get()) {
         1 -> Typeface.SANS_SERIF
         2 -> Typeface.MONOSPACE
         else -> Typeface.SERIF
     }
-    private val theme = preferences.epubTheme.get()
-    private val lineHeight = fontSize * 1.5f
-    private val maxLines = ((1500f - 110f) / lineHeight).toInt().coerceAtLeast(1)
+    private val compact = preferences.epubCompactPages.get()
+    private val topMargin = if (compact) 0 else 80
+    private val bottomMargin = if (compact) 0 else 80
+    private val foreground = when (theme) {
+        2, 3 -> Color.rgb(225, 225, 225)
+        else -> Color.rgb(35, 32, 29)
+    }
+    private val background = when (theme) {
+        1 -> Color.rgb(245, 235, 211)
+        2 -> Color.rgb(26, 27, 30)
+        3 -> Color.BLACK
+        else -> Color.WHITE
+    }
 
-    private data class Line(val text: String, val bold: Boolean = false)
+    var contents: List<EpubChapterLink> = emptyList()
+        private set
+
+    private data class Slice(val layout: StaticLayout, val firstLine: Int, val endLine: Int, val top: Int)
     private sealed interface RenderPage {
-        data class Text(val lines: List<Line>) : RenderPage
+        data class Text(val slices: List<Slice>, val height: Int) : RenderPage
         data class Image(val path: String) : RenderPage
     }
 
     override suspend fun getPages(): List<ReaderPage> {
         val pages = mutableListOf<RenderPage>()
-        val lines = mutableListOf<Line>()
-        val paint = textPaint()
+        val slices = mutableListOf<Slice>()
+        val targets = mutableMapOf<String, Int>()
+        val pendingTargets = mutableListOf<String>()
+        val fallbackContents = mutableListOf<EpubChapterLink>()
+        var sourceOffset = 0L
+        var pageStart = 0L
+        pageOffsets.clear()
+        var y = topMargin
 
+        fun bindTargets() {
+            pendingTargets.forEach { targets.putIfAbsent(it, pages.size) }
+            pendingTargets.clear()
+        }
         fun flushPage() {
-            if (lines.isNotEmpty()) {
-                pages.add(RenderPage.Text(lines.toList()))
-                lines.clear()
+            if (slices.isNotEmpty()) {
+                pageOffsets.add(pageStart)
+                pages.add(RenderPage.Text(slices.toList(), if (compact) y.coerceAtLeast(1) else PAGE_HEIGHT))
+                slices.clear()
             }
-        }
-        fun addLine(line: Line) {
-            if (lines.size == maxLines) flushPage()
-            lines.add(line)
-        }
-        fun addParagraph(value: String, heading: Boolean = false) {
-            if (value.isBlank()) return
-            if (lines.isNotEmpty()) addLine(Line(""))
-            val activePaint = if (heading) textPaint(bold = true) else paint
-            var line = ""
-            value.split(Regex("\\s+")).forEach { word ->
-                var remaining = word
-                while (remaining.isNotEmpty()) {
-                    val candidate = if (line.isEmpty()) remaining else "$line $remaining"
-                    if (activePaint.measureText(candidate) <= 900f) {
-                        line = candidate
-                        break
-                    }
-                    if (line.isNotEmpty()) {
-                        addLine(Line(line, heading))
-                        line = ""
-                    } else {
-                        val count = activePaint.breakText(remaining, true, 900f, null).coerceAtLeast(1)
-                        addLine(Line(remaining.take(count), heading))
-                        remaining = remaining.drop(count)
-                    }
-                }
-            }
-            if (line.isNotEmpty()) addLine(Line(line, heading))
+            y = topMargin
         }
 
-        val toc = reader.getTableOfContents()
-        if (toc.isNotEmpty()) {
-            addParagraph("Table of contents", heading = true)
-            toc.forEach { addParagraph(it) }
-            flushPage()
-        }
         reader.getContent().forEach { item ->
+            coroutineContext.ensureActive()
             when (item) {
-                is EpubReader.Content.Text -> addParagraph(item.value, item.heading)
+                is EpubReader.Content.Anchor -> pendingTargets.add(item.target)
                 is EpubReader.Content.Image -> {
                     flushPage()
+                    bindTargets()
+                    pageOffsets.add(sourceOffset)
+                    sourceOffset++
                     pages.add(RenderPage.Image(item.path))
+                }
+                is EpubReader.Content.Text -> {
+                    val text = SpannableString(item.value)
+                    item.styles.forEach { style ->
+                        val flags = (if (style.bold) Typeface.BOLD else 0) or (if (style.italic) Typeface.ITALIC else 0)
+                        text.setSpan(StyleSpan(flags), style.start, style.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    }
+                    val layout = StaticLayout.Builder.obtain(
+                        text, 0, text.length, textPaint(item.heading), PAGE_WIDTH - margin * 2,
+                    )
+                        .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                        .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
+                        .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NORMAL)
+                        .setIncludePad(false)
+                        .setLineSpacing(0f, lineSpacing)
+                        .build()
+                    val gap = if (slices.isEmpty()) 0 else (fontSize * paragraphSpacing).toInt()
+                    // Keep a heading with at least one following body line whenever it fits on a page.
+                    val required = if (item.heading) {
+                        layout.height + (fontSize * lineSpacing).toInt()
+                    } else {
+                        layout.getLineBottom(0)
+                    }
+                    if (slices.isNotEmpty() && y + gap + required > PAGE_HEIGHT - bottomMargin) flushPage()
+                    if (slices.isNotEmpty()) y += gap
+                    bindTargets()
+                    if (item.heading) fallbackContents.add(EpubChapterLink(item.value, pages.size))
+                    var firstLine = 0
+                    while (firstLine < layout.lineCount) {
+                        coroutineContext.ensureActive()
+                        val startY = layout.getLineTop(firstLine)
+                        var endLine = firstLine
+                        while (
+                            endLine < layout.lineCount &&
+                            y + layout.getLineBottom(endLine) - startY <= PAGE_HEIGHT - bottomMargin
+                        ) {
+                            endLine++
+                        }
+                        if (endLine == firstLine) {
+                            check(slices.isNotEmpty()) { "EPUB text line exceeds page height" }
+                            flushPage()
+                            continue
+                        }
+                        if (slices.isEmpty()) pageStart = sourceOffset + layout.getLineStart(firstLine)
+                        slices.add(Slice(layout, firstLine, endLine, y))
+                        y += layout.getLineBottom(endLine - 1) - startY
+                        firstLine = endLine
+                        if (firstLine < layout.lineCount) flushPage()
+                    }
+                    sourceOffset += item.value.length + 1
                 }
             }
         }
         flushPage()
+        val links = reader.getTableOfContents().mapNotNull { entry ->
+            val page = targets[entry.target] ?: targets[entry.target.substringBefore('#')] ?: return@mapNotNull null
+            EpubChapterLink(entry.title, page, entry.depth)
+        }
+        contents = links.ifEmpty { fallbackContents }.distinctBy { it.title to it.pageIndex }
 
         return pages.mapIndexed { index, item ->
             ReaderPage(index).apply {
                 stream = {
+                    check(!isRecycled)
                     when (item) {
-                        is RenderPage.Image -> reader.getInputStream(item.path)!!
-                        is RenderPage.Text -> ByteArrayInputStream(renderText(item.lines))
+                        is RenderPage.Image -> reader.getInputStream(item.path)
+                            ?: throw java.io.IOException("EPUB image is missing: ${item.path}")
+                        is RenderPage.Text -> ByteArrayInputStream(renderText(item))
                     }
                 }
                 status = Page.State.Ready
@@ -106,28 +170,36 @@ internal class EpubPageLoader(private val reader: EpubReader) : PageLoader() {
         }
     }
 
-    private fun textPaint(bold: Boolean = false) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = if (theme == 2) Color.rgb(225, 225, 225) else Color.rgb(35, 32, 29)
-        textSize = fontSize
-        typeface = Typeface.create(font, if (bold) Typeface.BOLD else Typeface.NORMAL)
+    fun savePosition(pageIndex: Int) {
+        pageOffsets.getOrNull(pageIndex)?.let { savedPosition.set(it.toString()) }
     }
 
-    private fun renderText(lines: List<Line>): ByteArray {
-        val bitmap = Bitmap.createBitmap(1080, 1600, Bitmap.Config.RGB_565)
+    fun restoredPageIndex(): Int? = savedPosition.get().toLongOrNull()?.let {
+        EpubReadingPosition.pageForOffset(pageOffsets, it)
+    }
+
+    private fun textPaint(heading: Boolean = false) = TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = foreground
+        textSize = if (heading) fontSize * 1.2f else fontSize
+        typeface = Typeface.create(font, if (heading) Typeface.BOLD else Typeface.NORMAL)
+    }
+
+    private fun renderText(page: RenderPage.Text): ByteArray {
+        val bitmap = Bitmap.createBitmap(PAGE_WIDTH, page.height, Bitmap.Config.RGB_565)
         try {
             val canvas = Canvas(bitmap)
-            canvas.drawColor(when (theme) {
-                1 -> Color.rgb(245, 235, 211)
-                2 -> Color.rgb(26, 27, 30)
-                else -> Color.WHITE
-            })
-            val normal = textPaint()
-            val bold = textPaint(bold = true)
-            lines.forEachIndexed { index, line ->
-                canvas.drawText(line.text, 90f, 100f + index * lineHeight, if (line.bold) bold else normal)
+            canvas.drawColor(background)
+            page.slices.forEach { slice ->
+                val top = slice.layout.getLineTop(slice.firstLine)
+                val height = slice.layout.getLineBottom(slice.endLine - 1) - top
+                canvas.save()
+                canvas.clipRect(margin, slice.top, PAGE_WIDTH - margin, slice.top + height)
+                canvas.translate(margin.toFloat(), (slice.top - top).toFloat())
+                slice.layout.draw(canvas)
+                canvas.restore()
             }
             return ByteArrayOutputStream().use { output ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+                check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output))
                 output.toByteArray()
             }
         } finally {
@@ -141,6 +213,12 @@ internal class EpubPageLoader(private val reader: EpubReader) : PageLoader() {
 
     override fun recycle() {
         super.recycle()
+        contents = emptyList()
         reader.close()
+    }
+
+    private companion object {
+        const val PAGE_WIDTH = 1080
+        const val PAGE_HEIGHT = 1600
     }
 }
