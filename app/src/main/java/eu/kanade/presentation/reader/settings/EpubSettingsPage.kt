@@ -29,8 +29,7 @@ import tachiyomi.presentation.core.util.collectAsState
 @Composable
 internal fun ColumnScope.EpubSettingsPage(
     viewModel: ReaderSettingsViewModel,
-    contents: List<EpubChapterLink>,
-    onSelectPage: (Int) -> Unit,
+    onApplyLayout: () -> Unit,
 ) {
     val prefs = viewModel.preferences
     val font by prefs.epubFont.collectAsState()
@@ -40,6 +39,9 @@ internal fun ColumnScope.EpubSettingsPage(
     val paragraphSpacing by prefs.epubParagraphSpacing.collectAsState()
     val margin by prefs.epubMargin.collectAsState()
 
+    TextButton(onClick = onApplyLayout, modifier = Modifier.padding(horizontal = 16.dp)) {
+        Text(stringResource(MR.strings.epub_apply))
+    }
     HeadingItem(MR.strings.epub_preview_label)
     Surface(
         modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth(),
@@ -141,6 +143,15 @@ internal fun ColumnScope.EpubSettingsPage(
             prefs.epubCompactPages.set(false)
         },
     ) { Text(stringResource(MR.strings.epub_reset)) }
+    CheckboxItem(label = stringResource(MR.strings.epub_reduce_flashing), pref = prefs.epubReduceFlashing)
+    CheckboxItem(label = stringResource(MR.strings.epub_animate_pages), pref = prefs.pageTransitions)
+    TextButton(onClick = onApplyLayout, modifier = Modifier.padding(horizontal = 16.dp)) {
+        Text(stringResource(MR.strings.epub_apply))
+    }
+}
+
+@Composable
+internal fun ColumnScope.EpubContentsPage(contents: List<EpubChapterLink>, onSelectPage: (Int) -> Unit) {
     HeadingItem(MR.strings.epub_contents)
     if (contents.isEmpty()) {
         Text(stringResource(MR.strings.epub_no_contents), modifier = Modifier.padding(horizontal = 24.dp))

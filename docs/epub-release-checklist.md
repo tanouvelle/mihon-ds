@@ -36,11 +36,18 @@ folder, to check EPUB 2 and EPUB 3 alongside a real novel and an image-only EPUB
 - Check the inline punctuation sample: `Hello world! Books, not book s.`
 - Check bold, italic, bullet/numbered lists, line breaks, Arabic, CJK and emoji.
 - Test first/last page and a long chapter at the smallest and largest text sizes.
-- Change font/size/spacing/margins, close the reader, reopen, and check that the
+- Change font/size/spacing/margins, tap Apply to open book, and check that the
   previous text remains on the resumed page. Returning to the same exact screen
   position is not guaranteed when line wrapping changes.
 - Check White, Sepia, Night and Black themes, including both physical displays.
-- Try continuous text layout with Webtoon mode; then disable it, reopen and test
+- Check that chapter one starts on a fresh page after front matter in paged layout.
+- Open Settings > Contents and jump to chapters after applying a larger font.
+- Enable global refresh flashes; verify EPUB suppression prevents them, then check
+  animation on/off in paged mode. Check for contrasting flashes while images load.
+- Apply layout with companion and side-by-side modes active; verify the current text
+  remains in the visible spread. Leave the reader during pagination and reopen.
+- Verify that cancelling/leaving a failed reflow keeps the old pages usable.
+- Try continuous text layout with Webtoon mode; then disable it, apply and test
   single-page and dual-page controls, rotation, and the companion display.
 - Test incognito mode and verify that it does not overwrite the saved EPUB position.
 - Install the signed APK over the previous working build; verify existing manga,
@@ -51,8 +58,8 @@ folder, to check EPUB 2 and EPUB 3 alongside a real novel and an image-only EPUB
 This implementation renders text into the existing image-reader pipeline. It does
 not provide text selection, dictionary lookup, highlights, search, clickable
 footnotes, or full publisher CSS/fixed-layout reproduction. Settings previews update
-immediately; book pages update when the book is reopened. Contents now live in the
-EPUB settings tab instead of generated pages at the beginning of the book. This
+immediately; book pages update with Apply to open book. Contents now live in a dedicated
+Contents tab instead of generated pages at the beginning of the book. This
 changes page numbering compared with the experimental build. EPUB position markers
 are local preferences; they are not a cross-device text-location sync protocol.
 

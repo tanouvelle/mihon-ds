@@ -1207,6 +1207,10 @@
     <string name="pref_secondary_display_scroll_sensitivity_summary">Sensitivity of scrolling on the secondary display</string>
 
     <!-- Local EPUB reader -->
+    <string name="epub_apply">Apply to open book</string>
+    <string name="epub_apply_error">Could not update the layout. Your previous pages are still available.</string>
+    <string name="epub_reduce_flashing">Suppress page refresh flashes in EPUB books</string>
+    <string name="epub_animate_pages">Animate page turns in paged reading mode</string>
     <string name="epub_settings">EPUB</string>
     <string name="epub_contents">Contents</string>
     <string name="epub_font">Font</string>
@@ -1223,7 +1227,7 @@
     <string name="epub_theme_night">Night</string>
     <string name="epub_theme_black">Black</string>
     <string name="epub_compact_pages">Continuous text layout</string>
-    <string name="epub_reopen_hint">Reopen the book to apply layout changes. Page numbers may change when text is resized.</string>
+    <string name="epub_reopen_hint">Tap Apply to update the open book and keep your reading position. Page numbers may change.</string>
     <string name="epub_continuous_hint">Continuous text layout removes the top and bottom margins between text pages. Use Webtoon mode for seamless vertical scrolling, or a paged mode for page turns.</string>
     <string name="epub_reset">Reset EPUB appearance</string>
     <string name="epub_preview">The quiet room was filled with stories, each waiting for a reader.</string>

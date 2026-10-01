@@ -6,9 +6,11 @@ reset action. Text now preserves bold, italic, lists and line breaks, with impro
 wrapping and punctuation spacing. Continuous text layout removes page-edge margins
 for scrolling. Reading position follows the text when typography changes.
 
-Reopen the book after changing layout settings. EPUB text still uses the existing
+Use Apply to open book after changing layout settings; your text position is retained.
+Paged layouts start spine sections and major headings on a fresh page. EPUB refresh
+flashes are suppressed by default, and page-turn animation is available in EPUB settings. EPUB text still uses the existing
 image reader; text selection, search, annotations and full publisher CSS are not
-included. Contents are now in Settings > EPUB, replacing the experimental contents
+included. Contents are now in Settings > Contents, replacing the experimental contents
 pages. See `docs/epub-release-checklist.md` for validation and upgrade notes.
 
 This candidate requires CI and device verification before a public release.

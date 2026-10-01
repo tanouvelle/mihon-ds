@@ -32,6 +32,7 @@ class EpubReader internal constructor(
             val styles: List<Style> = emptyList(),
         ) : Content
         data class Image(val path: String) : Content
+        data object Section : Content
         data class Anchor(val target: String) : Content
     }
 
@@ -42,6 +43,7 @@ class EpubReader internal constructor(
         val result = mutableListOf<Content>()
         getPagesFromDocument(getPackageDocument(ref)).forEach { page ->
             val path = resolveZipPath(getParentDirectory(ref), page)
+            result.add(Content.Section)
             result.add(Content.Anchor(path))
             val document = readDocument(path)
             val paragraph = StringBuilder()
@@ -77,6 +79,8 @@ class EpubReader internal constructor(
                         val block = isHeading ||
                             tag in setOf("p", "div", "section", "article", "li", "blockquote", "pre")
                         if (block) flush(heading)
+                        // Honour major chapter headings even when a publisher uses one XHTML file.
+                        if (tag == "h1") result.add(Content.Section)
                         if (node.id().isNotBlank()) result.add(Content.Anchor("$path#${node.id()}"))
                         when (tag) {
                             "img", "image" -> {

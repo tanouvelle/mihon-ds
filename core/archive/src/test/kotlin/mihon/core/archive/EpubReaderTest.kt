@@ -28,6 +28,14 @@ class EpubReaderTest {
     }
 
     @Test
+    fun `major chapter heading starts a section before its contents anchor`() {
+        val content = book("<p>Contents</p><h1 id='one'>Chapter One</h1><p>Story</p>").getContent()
+        val anchor = content.indexOf(EpubReader.Content.Anchor("OPS/text/chapter.xhtml#one"))
+        assertEquals(EpubReader.Content.Section, content[anchor - 1])
+        assertEquals("Chapter One", (content[anchor + 1] as EpubReader.Content.Text).value)
+    }
+
+    @Test
     fun `inline formatting does not add spaces before punctuation or inside words`() {
         val text = book("<p>Hello <em>world</em>! Book<strong>s</strong> are here.</p>")
             .getContent().filterIsInstance<EpubReader.Content.Text>().single()
@@ -137,6 +145,9 @@ class EpubReaderTest {
             "OPS/a.xhtml" to "<html><body><p>First</p></body></html>",
             "OPS/b.xhtml" to "<html><body><p>Second</p></body></html>",
         ))
+        val content = epub.getContent()
+        val second = content.indexOf(EpubReader.Content.Anchor("OPS/b.xhtml"))
+        assertEquals(EpubReader.Content.Section, content[second - 1])
         assertEquals(
             listOf("First", "Second"),
             epub.getContent().filterIsInstance<EpubReader.Content.Text>().map { it.value },

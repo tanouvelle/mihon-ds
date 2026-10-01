@@ -548,6 +548,7 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
                     ReaderViewModel.Event.ReloadViewerChapters -> {
                         viewModel.state.value.viewerChapters?.let(::setChapters)
                     }
+                    ReaderViewModel.Event.EpubLayoutError -> toast(MR.strings.epub_apply_error)
                     ReaderViewModel.Event.PageChanged -> {
                         displayRefreshHost.flash()
                     }
@@ -669,6 +670,7 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
                     onShowMenus = { setMenuVisibility(true) },
                     onHideMenus = { setMenuVisibility(false) },
                     viewModel = settingsViewModel,
+                    onApplyEpubLayout = viewModel::applyEpubLayout,
                     epubContents = (state.currentChapter?.pageLoader as? EpubPageLoader)?.contents,
                     onSelectEpubPage = ::moveToPageIndex,
                 )
@@ -936,7 +938,9 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
             colorBlendMode = colorOverlayBlendMode,
         )
 
-        if (flashOnPageChange) {
+        val reduceEpubFlashing by readerPreferences.epubReduceFlashing.collectAsState()
+        val isEpub = state.currentChapter?.pageLoader is EpubPageLoader
+        if (flashOnPageChange && !(isEpub && reduceEpubFlashing)) {
             DisplayRefreshHost(hostState = displayRefreshHost)
         }
     }

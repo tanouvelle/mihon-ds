@@ -2,16 +2,18 @@ package eu.kanade.tachiyomi.ui.reader.viewer.pager
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import androidx.core.view.isVisible
 import eu.kanade.presentation.util.formattedMessage
 import eu.kanade.tachiyomi.databinding.ReaderErrorBinding
 import eu.kanade.tachiyomi.source.model.Page
+import eu.kanade.tachiyomi.ui.reader.loader.EpubPageLoader
 import eu.kanade.tachiyomi.ui.reader.model.InsertPage
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
-import eu.kanade.tachiyomi.ui.reader.panel.PanelDetectionInput
 import eu.kanade.tachiyomi.ui.reader.panel.PanelDetectionImage
+import eu.kanade.tachiyomi.ui.reader.panel.PanelDetectionInput
 import eu.kanade.tachiyomi.ui.reader.panel.PanelPageKey
 import eu.kanade.tachiyomi.ui.reader.panel.PanelPageRenderVariant
 import eu.kanade.tachiyomi.ui.reader.panel.panelPageKey
@@ -81,7 +83,13 @@ class PagerPageHolder(
      */
     private var loadJob: Job? = null
 
+    private val epubBackground = (page.chapter.pageLoader as? EpubPageLoader)?.backgroundColor?.let(::ColorDrawable)
+
     init {
+        epubBackground?.let {
+            background = it
+            pageBackground = it
+        }
         loadJob = scope.launch { loadPageAndProcessStatus() }
     }
 
@@ -236,7 +244,7 @@ class PagerPageHolder(
                     ),
                 )
                 if (!loadedImage.isAnimated) {
-                    pageBackground = loadedImage.background
+                    pageBackground = epubBackground ?: loadedImage.background
                 }
                 removeErrorLayout()
             }

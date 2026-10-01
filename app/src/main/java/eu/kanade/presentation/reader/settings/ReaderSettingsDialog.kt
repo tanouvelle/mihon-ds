@@ -25,6 +25,7 @@ fun ReaderSettingsDialog(
     onShowMenus: () -> Unit,
     onHideMenus: () -> Unit,
     viewModel: ReaderSettingsViewModel,
+    onApplyEpubLayout: () -> Unit = {},
     epubContents: List<EpubChapterLink>? = null,
     onSelectEpubPage: (Int) -> Unit = {},
 ) {
@@ -32,8 +33,12 @@ fun ReaderSettingsDialog(
         stringResource(MR.strings.pref_category_reading_mode),
         stringResource(MR.strings.pref_category_general),
         stringResource(MR.strings.custom_filter),
-    ) + if (epubContents != null) listOf(stringResource(MR.strings.epub_settings)) else emptyList()
-    val pagerState = rememberPagerState { tabTitles.size }
+    ) + if (epubContents != null) {
+        listOf(stringResource(MR.strings.epub_settings), stringResource(MR.strings.epub_contents))
+    } else {
+        emptyList()
+    }
+    val pagerState = rememberPagerState(initialPage = if (epubContents != null) 3 else 0) { tabTitles.size }
 
     BoxWithConstraints {
         TabbedDialog(
@@ -66,7 +71,8 @@ fun ReaderSettingsDialog(
                     0 -> ReadingModePage(viewModel)
                     1 -> GeneralPage(viewModel)
                     2 -> ColorFilterPage(viewModel)
-                    3 -> EpubSettingsPage(viewModel, epubContents.orEmpty()) { index ->
+                    3 -> EpubSettingsPage(viewModel, onApplyEpubLayout)
+                    4 -> EpubContentsPage(epubContents.orEmpty()) { index ->
                         onDismissRequest()
                         onSelectEpubPage(index)
                     }

@@ -15,6 +15,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.runtime.Composable
@@ -54,11 +55,7 @@ fun TabbedDialog(
 
         Column {
             Row {
-                PrimaryTabRow(
-                    modifier = Modifier.weight(1f),
-                    selectedTabIndex = pagerState.currentPage,
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                ) {
+                val tabs: @Composable () -> Unit = {
                     tabTitles.fastForEachIndexed { index, tab ->
                         Tab(
                             selected = pagerState.currentPage == index,
@@ -67,6 +64,22 @@ fun TabbedDialog(
                             unselectedContentColor = MaterialTheme.colorScheme.onSurface,
                         )
                     }
+                }
+                if (tabTitles.size > 3) {
+                    PrimaryScrollableTabRow(
+                        modifier = Modifier.weight(1f),
+                        selectedTabIndex = pagerState.currentPage,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        edgePadding = 0.dp,
+                        tabs = tabs,
+                    )
+                } else {
+                    PrimaryTabRow(
+                        modifier = Modifier.weight(1f),
+                        selectedTabIndex = pagerState.currentPage,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        tabs = tabs,
+                    )
                 }
 
                 tabOverflowMenuContent?.let { MoreMenu(it) }

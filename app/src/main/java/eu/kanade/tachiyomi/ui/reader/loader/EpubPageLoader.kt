@@ -27,6 +27,46 @@ internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) :
     override var isLocal: Boolean = true
     private val preferences = Injekt.get<ReaderPreferences>()
     private val savedPosition = preferences.epubReadingPosition(bookKey)
+    private var layout = newLayout()
+    val contents: List<EpubChapterLink> get() = layout.contents
+    val backgroundColor: Int get() = layout.background
+
+    private fun newLayout() = EpubLayout(reader, preferences) { isRecycled }
+
+    override suspend fun getPages(): List<ReaderPage> = layout.getPages()
+
+    // Build off-thread without mutating the layout still displayed by the reader.
+    suspend fun prepareLayout(pageIndex: Int): EpubReflow {
+        val offset = layout.offsetForPage(pageIndex)
+        val next = newLayout()
+        val pages = next.getPages()
+        check(pages.isNotEmpty()) { "EPUB contains no readable pages" }
+        return EpubReflow(pages, next.pageForOffset(offset) ?: 0) { layout = next }
+    }
+
+    fun savePosition(pageIndex: Int) {
+        savedPosition.set(layout.offsetForPage(pageIndex).toString())
+    }
+
+    fun restoredPageIndex(): Int? = savedPosition.get().toLongOrNull()?.let(layout::pageForOffset)
+
+    override suspend fun loadPage(page: ReaderPage) {
+        check(!isRecycled)
+    }
+
+    override fun recycle() {
+        super.recycle()
+        reader.close()
+    }
+}
+
+internal data class EpubReflow(val pages: List<ReaderPage>, val pageIndex: Int, val commit: () -> Unit)
+
+private class EpubLayout(
+    private val reader: EpubReader,
+    private val preferences: ReaderPreferences,
+    private val isRecycled: () -> Boolean,
+) {
     private val pageOffsets = mutableListOf<Long>()
     private val fontSize = preferences.epubFontSize.get().coerceIn(26, 64).toFloat()
     private val margin = preferences.epubMargin.get().coerceIn(40, 140)
@@ -45,7 +85,7 @@ internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) :
         2, 3 -> Color.rgb(225, 225, 225)
         else -> Color.rgb(35, 32, 29)
     }
-    private val background = when (theme) {
+    val background = when (theme) {
         1 -> Color.rgb(245, 235, 211)
         2 -> Color.rgb(26, 27, 30)
         3 -> Color.BLACK
@@ -61,7 +101,7 @@ internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) :
         data class Image(val path: String) : RenderPage
     }
 
-    override suspend fun getPages(): List<ReaderPage> {
+    suspend fun getPages(): List<ReaderPage> {
         val pages = mutableListOf<RenderPage>()
         val slices = mutableListOf<Slice>()
         val targets = mutableMapOf<String, Int>()
@@ -88,6 +128,7 @@ internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) :
         reader.getContent().forEach { item ->
             coroutineContext.ensureActive()
             when (item) {
+                EpubReader.Content.Section -> if (!compact) flushPage()
                 is EpubReader.Content.Anchor -> pendingTargets.add(item.target)
                 is EpubReader.Content.Image -> {
                     flushPage()
@@ -158,7 +199,7 @@ internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) :
         return pages.mapIndexed { index, item ->
             ReaderPage(index).apply {
                 stream = {
-                    check(!isRecycled)
+                    check(!isRecycled())
                     when (item) {
                         is RenderPage.Image -> reader.getInputStream(item.path)
                             ?: throw java.io.IOException("EPUB image is missing: ${item.path}")
@@ -170,13 +211,9 @@ internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) :
         }
     }
 
-    fun savePosition(pageIndex: Int) {
-        pageOffsets.getOrNull(pageIndex)?.let { savedPosition.set(it.toString()) }
-    }
+    fun offsetForPage(index: Int): Long = pageOffsets.getOrNull(index) ?: 0L
 
-    fun restoredPageIndex(): Int? = savedPosition.get().toLongOrNull()?.let {
-        EpubReadingPosition.pageForOffset(pageOffsets, it)
-    }
+    fun pageForOffset(offset: Long): Int? = EpubReadingPosition.pageForOffset(pageOffsets, offset)
 
     private fun textPaint(heading: Boolean = false) = TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         color = foreground
@@ -205,16 +242,6 @@ internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) :
         } finally {
             bitmap.recycle()
         }
-    }
-
-    override suspend fun loadPage(page: ReaderPage) {
-        check(!isRecycled)
-    }
-
-    override fun recycle() {
-        super.recycle()
-        contents = emptyList()
-        reader.close()
     }
 
     private companion object {
