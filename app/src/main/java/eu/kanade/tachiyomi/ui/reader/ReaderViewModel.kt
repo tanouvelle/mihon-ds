@@ -850,6 +850,12 @@ class ReaderViewModel @JvmOverloads constructor(
         }
     }
 
+    fun openEpubTextReader() {
+        if (state.value.currentChapter?.pageLoader is EpubPageLoader) {
+            mutableState.update { it.copy(dialog = Dialog.EpubText) }
+        }
+    }
+
     fun openSettingsDialog() {
         mutableState.update { it.copy(dialog = Dialog.Settings) }
     }
@@ -1042,6 +1048,7 @@ class ReaderViewModel @JvmOverloads constructor(
 
     sealed interface Dialog {
         data object Loading : Dialog
+        data object EpubText : Dialog
         data object Settings : Dialog
         data object ReadingModeSelect : Dialog
         data object OrientationModeSelect : Dialog

@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.books
 
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -20,3 +21,9 @@ internal suspend fun copyBookBytes(input: InputStream, output: OutputStream, lim
         output.write(buffer, 0, count)
     }
 }
+
+internal suspend fun readBookSourceBytes(input: InputStream, limit: Int): ByteArray =
+    ByteArrayOutputStream().use { output ->
+        copyBookBytes(input, output, limit.toLong())
+        output.toByteArray()
+    }

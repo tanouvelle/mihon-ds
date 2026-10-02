@@ -28,6 +28,7 @@ fun ReaderSettingsDialog(
     onHideMenus: () -> Unit,
     viewModel: ReaderSettingsViewModel,
     onApplyEpubLayout: () -> Unit = {},
+    onOpenEpubText: () -> Unit = {},
     epubContents: List<EpubChapterLink>? = null,
     epubPreferences: ReaderPreferences? = null,
     epubCurrentPage: Int = 0,
@@ -81,7 +82,7 @@ fun ReaderSettingsDialog(
                     0 -> ReadingModePage(viewModel)
                     1 -> GeneralPage(viewModel)
                     2 -> ColorFilterPage(viewModel)
-                    3 -> EpubSettingsPage(epubPreferences ?: viewModel.preferences, onApplyEpubLayout)
+                    3 -> EpubSettingsPage(epubPreferences ?: viewModel.preferences, onApplyEpubLayout, onOpenEpubText)
                     4 -> EpubContentsPage(
                         contents = epubContents.orEmpty(),
                         currentPage = epubCurrentPage,

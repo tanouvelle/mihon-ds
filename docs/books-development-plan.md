@@ -16,8 +16,8 @@ they must not pretend that ebook downloads are manga image pages.
   merge on restore, and separate EPUB selection in existing sync configuration.
 
 The backup implementation is awaiting Android CI and device validation. It backs
-up reader data, not ebook files. Restored books currently need matching local
-library paths. It does not establish portable cross-device book identity.
+up reader data, not ebook files. Restored reading data now uses content identities for EPUBs; path-keyed legacy
+data migrates when the book is opened. Book files still need to be imported separately.
 
 ## Implementation order and acceptance criteria
 
@@ -33,18 +33,23 @@ library paths. It does not establish portable cross-device book identity.
    Migrate path-keyed bookmarks without deleting legacy records. Provide Books and
    Manga filters before changing the application's navigation hierarchy. Different
    editions must not silently share text positions.
-3. **Text reader** — planned. Introduce a reader interface alongside the existing
+3. **Text reader** — partial. An optional main-screen selectable text dialog and
+   whole-book search now reuse existing pagination; full reflow, annotations and
+   linked footnotes remain planned. Introduce a reader interface alongside the existing
    image viewer, initially for reflowable EPUB. Preserve chapter/fragment locations,
    reading direction and dual-screen page order. Add selection, copy, in-book
    search, inline footnotes and dictionary intents. Restrict active book content
    and external navigation. Keep the existing renderer as a fallback until parity
    is demonstrated on single-screen, paired-page and companion-screen layouts.
-4. **Book catalogues** — planned. Implement OPDS navigation, search, pagination,
+4. **Book catalogues** — initial OPDS 1 browsing, search templates, pagination and
+   direct EPUB download/import implemented; live validation and authentication remain. Implement OPDS navigation, search, pagination,
    book details and acquisition links. Start with a user-entered Calibre server.
    Handle authentication separately from catalogue data and exclude credentials
    from ordinary backups. Download into staging, validate EPUB structure, support
    retry/cancellation, then import atomically. Do not index incomplete downloads.
-5. **Source repository** — planned, not created. Proposed name:
+5. **Source repository** — separate remote repository not created. Individual
+   Gutenberg/Calibre JSON definitions and installation support are implemented in
+   `book-source-extensions/`; executable provider APIs remain planned. Proposed name:
    `mihon-ds-book-sources`. Define a versioned provider API for search, metadata and
    acquisition. Extensions return ebook resources and format information, not
    manga chapters. Include build checks, compatibility metadata and an example

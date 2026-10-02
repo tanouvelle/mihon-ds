@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.text.Layout
 import android.text.SpannableString
+import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.StaticLayout
 import android.text.TextPaint
@@ -41,6 +42,9 @@ internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) :
     private var layout = newLayout()
     val contents: List<EpubChapterLink> get() = layout.contents
     val backgroundColor: Int get() = layout.background
+    val textAppearance: EpubAppearance get() = layout.appearance
+    val searchableText: String get() = layout.searchableText
+    fun selectablePage(index: Int): CharSequence? = layout.selectablePage(index)
 
     fun offsetForPage(index: Int): Long = layout.offsetForPage(index)
     fun pageForOffset(offset: Long): Int? = layout.pageForOffset(offset)
@@ -89,6 +93,25 @@ private class EpubLayout(
 ) {
     val appearance = EpubAppearance.capture(preferences)
     private val pageOffsets = mutableListOf<Long>()
+    private var renderedPages: List<RenderPage> = emptyList()
+    var searchableText: String = ""
+        private set
+
+    fun selectablePage(index: Int): CharSequence? {
+        val page = renderedPages.getOrNull(index) as? RenderPage.Text ?: return null
+        return SpannableStringBuilder().apply {
+            page.slices.forEachIndexed { sliceIndex, slice ->
+                if (sliceIndex > 0) append("\n\n")
+                val start = length
+                append(slice.layout.text.subSequence(
+                    slice.layout.getLineStart(slice.firstLine), slice.layout.getLineEnd(slice.endLine - 1),
+                ))
+                if (slice.layout.paint.typeface?.isBold == true) {
+                    setSpan(StyleSpan(Typeface.BOLD), start, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+            }
+        }
+    }
     private val fontSize = preferences.epubFontSize.get().coerceIn(26, 64).toFloat()
     private val margin = preferences.epubMargin.get().coerceIn(40, 140)
     private val lineSpacing = preferences.epubLineSpacing.get().coerceIn(110, 200) / 100f
@@ -128,6 +151,7 @@ private class EpubLayout(
         val targets = mutableMapOf<String, Int>()
         val pendingTargets = mutableListOf<String>()
         val fallbackContents = mutableListOf<EpubChapterLink>()
+        val sourceText = StringBuilder()
         var sourceOffset = 0L
         var pageStart = 0L
         pageOffsets.clear()
@@ -155,6 +179,7 @@ private class EpubLayout(
                     flushPage()
                     bindTargets()
                     pageOffsets.add(sourceOffset)
+                    sourceText.append('\n')
                     sourceOffset++
                     pages.add(RenderPage.Image(item.path))
                 }
@@ -206,6 +231,7 @@ private class EpubLayout(
                         firstLine = endLine
                         if (firstLine < layout.lineCount) flushPage()
                     }
+                    sourceText.append(item.value).append('\n')
                     sourceOffset += item.value.length + 1
                 }
             }
@@ -217,6 +243,8 @@ private class EpubLayout(
         }
         contents = links.ifEmpty { fallbackContents }.distinctBy { it.title to it.pageIndex }
 
+        renderedPages = pages.toList()
+        searchableText = sourceText.toString()
         return pages.mapIndexed { index, item ->
             ReaderPage(index).apply {
                 stream = {

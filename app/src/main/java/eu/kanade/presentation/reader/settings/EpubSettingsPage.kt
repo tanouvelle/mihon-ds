@@ -37,7 +37,12 @@ import tachiyomi.presentation.core.util.collectAsState
 internal fun ColumnScope.EpubSettingsPage(
     prefs: ReaderPreferences,
     onApplyLayout: () -> Unit,
+    onOpenText: () -> Unit,
 ) {
+    TextButton(onClick = onOpenText, modifier = Modifier.padding(horizontal = 16.dp)) {
+        Text(stringResource(MR.strings.epub_text_mode))
+    }
+    Text(stringResource(MR.strings.epub_text_hint), modifier = Modifier.padding(horizontal = 24.dp))
     val font by prefs.epubFont.collectAsState()
     val size by prefs.epubFontSize.collectAsState()
     val theme by prefs.epubTheme.collectAsState()

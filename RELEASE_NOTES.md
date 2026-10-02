@@ -45,6 +45,20 @@ ComicInfo metadata into a hidden staging folder and publishes it only after the
 copy completes. Original files are retained. Imported books are available in Local
 source and must be added to the library there. Import size is limited to 256 MB.
 
+EPUB settings now offer Selectable text on the main screen. Native text selection
+supports copying and Android text actions; search scans the whole book and jumps
+to the existing page containing a match. Page progress uses the existing incognito
+and resume rules. Illustrations and paired-screen layouts remain in the regular
+reader. This is an optional text view, not yet a full replacement text engine;
+persistent highlights, annotations and clickable footnotes remain unimplemented.
+
+Book sources now provide OPDS 1 catalogue navigation, supported feed search,
+pagination and explicit EPUB download/import. Individually installable JSON source
+definitions for Gutenberg and configurable Calibre live in book-source-extensions/.
+These are declarative book extensions, not manga APK extensions. Authentication,
+OPDS 2, paid/borrowed/DRM acquisition and Anna's Archive/Z-Library are not implemented.
+No separate remote GitHub repository has been created. Live access needs testing.
+
 This candidate requires CI and device verification before a public release.
 
 ---

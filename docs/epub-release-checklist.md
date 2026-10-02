@@ -122,3 +122,21 @@ not increment the app version or publish a release.
   from two screens; only one completed copy should exist.
 - Confirm metadata containing ampersands and non-Latin characters round trips
   through ComicInfo and that the original imported EPUB bytes remain unchanged.
+
+## Selectable text and book sources
+
+- Open Reader settings > EPUB > Selectable text. Copy accented and non-Latin text;
+  check bold/italic, fonts, night colours, previous/next, Android Back and resume.
+- Search a phrase inside a paragraph that spans rendered pages. Jump, close text
+  mode and verify the regular reader resumes at the selected page. Test incognito.
+- Test illustrations, first/last page, orientation changes and the companion screen.
+  The text dialog is primary-screen only and does not display illustrations.
+- Open Book sources, browse Gutenberg, follow navigation/next links and test search
+  when advertised by the feed. Select an EPUB explicitly, then check Local source.
+- Configure a Calibre server without authentication using its OPDS URL; save it.
+  Do not disable security on an exposed server to accommodate this initial client.
+- Install each JSON source definition, restart and verify it remains selectable.
+- Test malformed/oversized feeds and definitions, invalid URL schemes, unknown schema
+  versions, HTTP errors, unavailable servers, cancellation and duplicate acquisition.
+- Verify failed downloads leave no visible incomplete books and credentials cannot
+  be embedded in saved source URLs. Definitions use App settings backup, not EPUB data.

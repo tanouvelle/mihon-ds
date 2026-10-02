@@ -59,6 +59,7 @@ import com.hippo.unifile.UniFile
 import eu.kanade.core.util.ifSourcesLoaded
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.presentation.reader.DisplayRefreshHost
+import eu.kanade.presentation.reader.EpubTextReader
 import eu.kanade.presentation.reader.OrientationSelectDialog
 import eu.kanade.presentation.reader.ReaderContentOverlay
 import eu.kanade.presentation.reader.ReaderPageActionsDialog
@@ -651,6 +652,21 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
 
         val onDismissRequest = viewModel::closeDialog
         when (state.dialog) {
+            ReaderViewModel.Dialog.EpubText -> {
+                val epub = state.currentChapter?.pageLoader as? EpubPageLoader
+                if (epub != null) EpubTextReader(
+                    loader = epub,
+                    initialPage = state.currentPage - 1,
+                    pageCount = state.currentChapter?.pages?.size ?: 0,
+                    onPageChange = { index ->
+                        state.currentChapter?.pages?.getOrNull(index)?.let(viewModel::onPageSelected)
+                    },
+                    onDismiss = {
+                        viewModel.closeDialog()
+                        moveToPageIndex((viewModel.state.value.currentPage - 1).coerceAtLeast(0))
+                    },
+                )
+            }
             is ReaderViewModel.Dialog.Loading -> {
                 AlertDialog(
                     onDismissRequest = {},
@@ -683,6 +699,7 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
                     onHideMenus = { setMenuVisibility(false) },
                     viewModel = settingsViewModel,
                     onApplyEpubLayout = viewModel::applyEpubLayout,
+                    onOpenEpubText = viewModel::openEpubTextReader,
                     epubContents = epub?.contents,
                     epubPreferences = epub?.preferences,
                     epubCurrentPage = (state.currentPage - 1).coerceAtLeast(0),
