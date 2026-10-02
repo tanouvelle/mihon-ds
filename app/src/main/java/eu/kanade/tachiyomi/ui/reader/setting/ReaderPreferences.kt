@@ -107,6 +107,35 @@ class ReaderPreferences(
 
     fun forEpubBook(bookKey: String) = ReaderPreferences(preferenceStore, json, "epub_${epubBookId(bookKey)}_")
 
+    /** Copy legacy path-keyed data once; existing identity-keyed data wins. */
+    fun migrateEpubBook(legacyKey: String, stableKey: String) {
+        val marker = preferenceStore.getBoolean(
+            "reader_epub_migrated_${epubBookId(legacyKey)}_${epubBookId(stableKey)}", false,
+        )
+        if (marker.get()) return
+        val old = forEpubBook(legacyKey)
+        val new = forEpubBook(stableKey)
+        fun <T> copyIfMissing(from: Preference<T>, to: Preference<T>) {
+            if (from.isSet() && !to.isSet()) to.set(from.get())
+        }
+        copyIfMissing(old.epubFont, new.epubFont)
+        copyIfMissing(old.epubFontSize, new.epubFontSize)
+        copyIfMissing(old.epubTheme, new.epubTheme)
+        copyIfMissing(old.epubLineSpacing, new.epubLineSpacing)
+        copyIfMissing(old.epubParagraphSpacing, new.epubParagraphSpacing)
+        copyIfMissing(old.epubMargin, new.epubMargin)
+        copyIfMissing(old.epubCompactPages, new.epubCompactPages)
+        copyIfMissing(epubReadingPosition(legacyKey), epubReadingPosition(stableKey))
+        val oldBookmarks = epubBookmarks(legacyKey)
+        val newBookmarks = epubBookmarks(stableKey)
+        if (oldBookmarks.isSet()) newBookmarks.set(newBookmarks.get() + oldBookmarks.get())
+        // Retain the originals for older backups; don't resurrect removed bookmarks on later opens.
+        if (oldBookmarks.isSet() || epubReadingPosition(legacyKey).isSet() ||
+            listOf(old.epubFont, old.epubFontSize, old.epubTheme, old.epubLineSpacing,
+                old.epubParagraphSpacing, old.epubMargin, old.epubCompactPages).any { it.isSet() }
+        ) marker.set(true)
+    }
+
     fun epubReadingPosition(bookKey: String): Preference<String> =
         preferenceStore.getString("reader_epub_position_${epubBookId(bookKey)}", "")
 

@@ -179,7 +179,7 @@ class LibraryViewModel(
                 prefs.filterIntervalCustom,
                 *trackFilters.values.toTypedArray(),
             )
-                .any { it != TriState.DISABLED }
+                .any { it != TriState.DISABLED } || prefs.contentType != 0
         }
             .distinctUntilChanged()
             .onEach {
@@ -250,7 +250,12 @@ class LibraryViewModel(
         }
 
         return fastFilter {
-            filterFnDownloaded(it) &&
+            val matchesType = when (preferences.contentType) {
+                1 -> it.hasBooks
+                2 -> it.hasManga
+                else -> true
+            }
+            matchesType && filterFnDownloaded(it) &&
                 filterFnUnread(it) &&
                 filterFnStarted(it) &&
                 filterFnBookmarked(it) &&
@@ -370,6 +375,7 @@ class LibraryViewModel(
             libraryPreferences.filterBookmarked.changes(),
             libraryPreferences.filterCompleted.changes(),
             libraryPreferences.filterIntervalCustom.changes(),
+            libraryPreferences.contentType.changes(),
         ) {
             ItemPreferences(
                 downloadBadge = it[0] as Boolean,
@@ -384,19 +390,28 @@ class LibraryViewModel(
                 filterBookmarked = it[9] as TriState,
                 filterCompleted = it[10] as TriState,
                 filterIntervalCustom = it[11] as TriState,
+                contentType = it[12] as Int,
             )
         }
     }
 
     private fun getFavoritesFlow(): Flow<List<LibraryItem>> {
         return combine(
-            getLibraryManga.subscribe(),
+            getLibraryManga.subscribe().map { entries ->
+                entries.map { entry ->
+                    val chapters = if (entry.manga.isLocal()) getChaptersByMangaId.await(entry.id) else emptyList()
+                    val content = LibraryContent.fromChapterUrls(chapters.map { it.url })
+                    Triple(entry, content.hasBooks, content.hasManga)
+                }
+            },
             getLibraryItemPreferencesFlow(),
             downloadCache.changes,
         ) { libraryManga, preferences, _ ->
-            libraryManga.map { manga ->
+            libraryManga.map { (manga, hasBooks, hasManga) ->
                 LibraryItem(
                     libraryManga = manga,
+                    hasBooks = hasBooks,
+                    hasManga = hasManga,
                     downloadCount = downloadManager.getDownloadCount(manga.manga),
                     unreadCount = manga.unreadCount,
                     isLocal = manga.manga.isLocal(),
@@ -769,6 +784,7 @@ class LibraryViewModel(
         val filterBookmarked: TriState,
         val filterCompleted: TriState,
         val filterIntervalCustom: TriState,
+        val contentType: Int,
     )
 
     @Immutable

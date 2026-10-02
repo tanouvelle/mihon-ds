@@ -26,9 +26,18 @@ import uy.kohesive.injekt.api.get
 /** Renders styled EPUB paragraphs into the existing reader's page and dual-screen pipeline. */
 internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) : PageLoader() {
     override var isLocal: Boolean = true
-    val preferences = Injekt.get<ReaderPreferences>().forEpubBook(bookKey)
-    val bookmarks = preferences.epubBookmarks(bookKey)
-    private val savedPosition = preferences.epubReadingPosition(bookKey)
+    private val stableBookKey = try {
+        reader.getBookIdentity()
+    } catch (e: Exception) {
+        reader.close()
+        throw e
+    }
+    private val rootPreferences = Injekt.get<ReaderPreferences>().also {
+        it.migrateEpubBook(bookKey, stableBookKey)
+    }
+    val preferences = rootPreferences.forEpubBook(stableBookKey)
+    val bookmarks = preferences.epubBookmarks(stableBookKey)
+    private val savedPosition = preferences.epubReadingPosition(stableBookKey)
     private var layout = newLayout()
     val contents: List<EpubChapterLink> get() = layout.contents
     val backgroundColor: Int get() = layout.background

@@ -12,6 +12,36 @@ import tachiyomi.core.common.preference.PreferenceStore
 
 class EpubAppearanceTest {
     @Test
+    fun `legacy data migrates once and does not resurrect a removed bookmark`() {
+        val prefs = ReaderPreferences(PersistentTestStore(), Json)
+        prefs.forEpubBook("old/path.epub").epubFontSize.set(52)
+        prefs.epubReadingPosition("old/path.epub").set("300")
+        prefs.epubBookmarks("old/path.epub").set(setOf("100"))
+        prefs.migrateEpubBook("old/path.epub", "epub-v1:stable")
+        assertEquals(52, prefs.forEpubBook("epub-v1:stable").epubFontSize.get())
+        assertEquals("300", prefs.epubReadingPosition("epub-v1:stable").get())
+        assertEquals(setOf("100"), prefs.epubBookmarks("epub-v1:stable").get())
+        prefs.epubBookmarks("epub-v1:stable").set(emptySet())
+        prefs.migrateEpubBook("old/path.epub", "epub-v1:stable")
+        assertEquals(emptySet<String>(), prefs.epubBookmarks("epub-v1:stable").get())
+    }
+
+    @Test
+    fun `another path merges bookmarks but preserves existing identity keyed appearance and position`() {
+        val prefs = ReaderPreferences(PersistentTestStore(), Json)
+        prefs.forEpubBook("epub-v1:stable").epubFontSize.set(60)
+        prefs.epubReadingPosition("epub-v1:stable").set("900")
+        prefs.epubBookmarks("epub-v1:stable").set(setOf("800"))
+        prefs.forEpubBook("copy.epub").epubFontSize.set(30)
+        prefs.epubReadingPosition("copy.epub").set("200")
+        prefs.epubBookmarks("copy.epub").set(setOf("100"))
+        prefs.migrateEpubBook("copy.epub", "epub-v1:stable")
+        assertEquals(60, prefs.forEpubBook("epub-v1:stable").epubFontSize.get())
+        assertEquals("900", prefs.epubReadingPosition("epub-v1:stable").get())
+        assertEquals(setOf("100", "800"), prefs.epubBookmarks("epub-v1:stable").get())
+    }
+
+    @Test
     fun `appearance presets round trip and reject malformed data`() {
         val preset = EpubAppearance(2, 52, 2, 170, 75, 100, true)
         assertEquals(preset, EpubAppearance.decode(preset.encode()))

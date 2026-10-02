@@ -38,6 +38,30 @@ class EpubReader internal constructor(
 
     data class TocEntry(val title: String, val target: String, val depth: Int = 0)
 
+    /** Stable across external renames and ZIP recompression; distinguishes changed editions. */
+    fun getBookIdentity(): String {
+        val ref = getPackageHref()
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        val paths = listOf(ref) + getPagesFromDocument(getPackageDocument(ref)).map {
+            resolveZipPath(getParentDirectory(ref), it)
+        }
+        paths.forEach { path ->
+            val entryDigest = java.security.MessageDigest.getInstance("SHA-256")
+            val stream = getInputStream(path) ?: throw IOException("EPUB content file is missing: $path")
+            stream.use { input ->
+                val buffer = ByteArray(8192)
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    if (count > 0) entryDigest.update(buffer, 0, count)
+                }
+            }
+            // Fixed-size entry digests preserve boundaries and spine order.
+            digest.update(entryDigest.digest())
+        }
+        return "epub-v1:" + digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
     fun getContent(): List<Content> {
         val ref = getPackageHref()
         val result = mutableListOf<Content>()

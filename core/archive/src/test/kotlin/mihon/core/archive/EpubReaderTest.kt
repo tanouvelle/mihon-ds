@@ -3,6 +3,7 @@ package mihon.core.archive
 import java.io.IOException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -25,6 +26,23 @@ class EpubReaderTest {
             "OPS/text/chapter.xhtml" to "<html><body>$body</body></html>",
         ) + extraFiles
         return EpubReader(openEntry = { files[it]?.byteInputStream() })
+    }
+
+    @Test
+    fun `identity is deterministic and separates changed text in the same package`() {
+        val original = book("<p>First edition</p>").getBookIdentity()
+        assertEquals(original, book("<p>First edition</p>").getBookIdentity())
+        assertTrue(original.startsWith("epub-v1:"))
+        assertNotEquals(original, book("<p>Revised edition</p>").getBookIdentity())
+    }
+
+    @Test
+    fun `identity rejects incomplete books rather than reusing a partial fingerprint`() {
+        val epub = book("", extraFiles = mapOf("OPS/book.opf" to """
+            <package><manifest><item id="missing" href="missing.xhtml" media-type="application/xhtml+xml"/></manifest>
+            <spine><itemref idref="missing"/></spine></package>
+        """.trimIndent()))
+        assertThrows(IOException::class.java) { epub.getBookIdentity() }
     }
 
     @Test

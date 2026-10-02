@@ -26,6 +26,18 @@ Restoring merges bookmarks, while saved appearance and positions replace current
 values. EPUB-only restores do not reschedule library updates or automatic backups.
 Book files are not embedded in backups and must be copied separately.
 
+Library filters now include All, Books (EPUB), and Manga. Local entries with both
+formats appear in both views; entries without scanned chapter lists remain in All
+and Manga until their chapter list is loaded. These are library filters, not a new
+book importer or a separate database.
+
+EPUB reading data now uses a fingerprint of package metadata and ordered spine
+contents. An unchanged book keeps its reading data after an external rename or
+move, including ZIP recompression. Open older books once at their old path to
+migrate legacy bookmarks/settings before moving them. Altered package metadata or
+text produces a new identity. This does not automatically remove duplicate library
+entries or migrate data for a book already moved before its first upgrade open.
+
 This candidate requires CI and device verification before a public release.
 
 ---

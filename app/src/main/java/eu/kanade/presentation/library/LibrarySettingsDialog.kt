@@ -77,6 +77,20 @@ fun LibrarySettingsDialog(
 internal fun ColumnScope.FilterPage(
     viewModel: LibrarySettingsViewModel,
 ) {
+    val contentType by viewModel.libraryPreferences.contentType.collectAsState()
+    SettingsChipRow(MR.strings.library_content_type) {
+        listOf(MR.strings.library_content_all, MR.strings.library_content_books, MR.strings.manga)
+            .forEachIndexed { index, label ->
+                FilterChip(
+                    selected = contentType == index,
+                    onClick = { viewModel.libraryPreferences.contentType.set(index) },
+                    label = { Text(stringResource(label)) },
+                )
+            }
+    }
+    if (contentType != 0) {
+        Text(stringResource(MR.strings.library_content_hint), style = MaterialTheme.typography.bodySmall)
+    }
     val filterDownloaded by viewModel.libraryPreferences.filterDownloaded.collectAsState()
     val downloadedOnly by viewModel.preferences.downloadedOnly.collectAsState()
     val autoUpdateMangaRestrictions by viewModel.libraryPreferences.autoUpdateMangaRestrictions.collectAsState()

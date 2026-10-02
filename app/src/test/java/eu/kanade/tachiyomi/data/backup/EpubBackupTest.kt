@@ -43,6 +43,7 @@ class EpubBackupTest {
         assertTrue(EpubBackupPolicy.select(records, false, false).isEmpty())
         assertFalse(EpubBackupPolicy.isEpubKey("epub_not_a_book_reader_epub_font"))
         assertTrue(EpubBackupPolicy.isEpubKey("epub_reduce_flashing"))
+        assertTrue(EpubBackupPolicy.isEpubKey("reader_epub_migrated_${id}_$id"))
     }
 
     @Test

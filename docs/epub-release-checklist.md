@@ -90,5 +90,18 @@ not increment the app version or publish a release.
 - Deselect EPUB data while keeping App settings selected, on both creation and
   restoration. Existing EPUB data must remain untouched.
 - Verify scheduled backups still include EPUB data by default and the sync selector
-  saves the new option. Device-specific paths must match; this is not book-file sync.
+  saves the new option. Legacy, unmigrated data still needs matching paths; this is not book-file sync.
 - Book files and ephemeral “Back to where I was” history are not included.
+
+## Book identity and library filters
+
+- Open a book with old bookmarks/settings before renaming its file or directory.
+  Refresh its local chapter list, reopen it and verify the same data is restored.
+- Open another copy of the same EPUB; verify it shares reading data. Change its
+  text or package metadata and verify it gets a distinct identity.
+- Delete a migrated bookmark, reopen twice and verify it does not reappear.
+- Restore a backup on another device and open the same EPUB under another name.
+- Check All / Books / Manga against EPUB-only, image-only, mixed and unscanned
+  local folders. Mixed folders must be visible in both filtered views.
+- Classification currently relies on downloaded local chapter metadata; load or
+  refresh chapter lists first. Online novel extensions are not yet supported.
