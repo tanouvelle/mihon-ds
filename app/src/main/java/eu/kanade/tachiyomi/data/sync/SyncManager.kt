@@ -80,7 +80,8 @@ class SyncManager(
         val isLocalDirty = try {
             val modifiedMangaCount = handler.awaitOne { mangasQueries.countModifiedSince(lastSyncTimestamp) }
             val modifiedChapterCount = handler.awaitOne { chaptersQueries.countModifiedSince(lastSyncTimestamp) }
-            (modifiedMangaCount > 0) || (modifiedChapterCount > 0)
+            // EPUB preferences have no database dirty timestamp. Include them whenever their sync is enabled.
+            (modifiedMangaCount > 0) || (modifiedChapterCount > 0) || syncOptions.epubData
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Failed to check local dirty state" }
             true
@@ -95,6 +96,7 @@ class SyncManager(
                 history = syncOptions.history,
                 extensionStores = syncOptions.extensionRepoSettings,
                 appSettings = syncOptions.appSettings,
+                epubData = syncOptions.epubData,
                 sourceSettings = syncOptions.sourceSettings,
                 privateSettings = syncOptions.privateSettings,
 
@@ -197,6 +199,7 @@ class SyncManager(
                 sync = true,
                 options = RestoreOptions(
                     appSettings = syncOptions.appSettings,
+                    epubData = syncOptions.epubData,
                     sourceSettings = syncOptions.sourceSettings,
                     libraryEntries = syncOptions.libraryEntries,
                     categories = syncOptions.categories,

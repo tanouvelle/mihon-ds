@@ -20,6 +20,7 @@ data class BackupOptions(
     val mergedManga: Boolean = true,
     val savedSearches: Boolean = true,
     // SY <--
+    val epubData: Boolean = true,
 ) {
 
     fun asBooleanArray() = booleanArrayOf(
@@ -39,9 +40,10 @@ data class BackupOptions(
         mergedManga,
         savedSearches,
         // SY <--
+        epubData,
     )
 
-    fun canCreate() = libraryEntries || categories || appSettings || extensionStores || sourceSettings
+    fun canCreate() = libraryEntries || categories || appSettings || extensionStores || sourceSettings || epubData
 
     companion object {
         val libraryOptions = listOf(
@@ -89,6 +91,11 @@ data class BackupOptions(
 
         val settingsOptions = listOf(
             Entry(
+                label = MR.strings.epub_backup_data,
+                getter = BackupOptions::epubData,
+                setter = { options, enabled -> options.copy(epubData = enabled) },
+            ),
+            Entry(
                 label = MR.strings.app_settings,
                 getter = BackupOptions::appSettings,
                 setter = { options, enabled -> options.copy(appSettings = enabled) },
@@ -122,6 +129,7 @@ data class BackupOptions(
             extensionStores = array[7],
             sourceSettings = array[8],
             privateSettings = array[9],
+            epubData = array.getOrElse(13) { array[6] },
 
             // SY -->
             customInfo = array.getOrElse(10) { true },

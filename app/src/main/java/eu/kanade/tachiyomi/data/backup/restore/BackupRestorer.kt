@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import eu.kanade.tachiyomi.data.backup.BackupDecoder
 import eu.kanade.tachiyomi.data.backup.BackupNotifier
+import eu.kanade.tachiyomi.data.backup.EpubBackupPolicy
 import eu.kanade.tachiyomi.data.backup.models.BackupCategory
 import eu.kanade.tachiyomi.data.backup.models.BackupExtensionStore
 import eu.kanade.tachiyomi.data.backup.models.BackupManga
@@ -97,7 +98,7 @@ class BackupRestorer(
         if (options.categories) {
             restoreAmount += 1
         }
-        if (options.appSettings) {
+        if (options.appSettings || options.epubData) {
             restoreAmount += 1
         }
         if (options.extensionStores) {
@@ -111,8 +112,12 @@ class BackupRestorer(
             if (options.categories) {
                 restoreCategories(backup.backupCategories)
             }
-            if (options.appSettings) {
-                restoreAppPreferences(backup.backupPreferences, backup.backupCategories.takeIf { options.categories })
+            if (options.appSettings || options.epubData) {
+                restoreAppPreferences(
+                    EpubBackupPolicy.select(backup.backupPreferences, options.appSettings, options.epubData),
+                    backup.backupCategories.takeIf { options.categories },
+                    options.appSettings,
+                )
             }
             if (options.sourceSettings) {
                 restoreSourcePreferences(backup.backupSourcePreferences)
@@ -187,16 +192,18 @@ class BackupRestorer(
     private fun CoroutineScope.restoreAppPreferences(
         preferences: List<BackupPreference>,
         categories: List<BackupCategory>?,
+        appSettings: Boolean,
     ) = launch {
         ensureActive()
         preferenceRestorer.restoreApp(
             preferences,
             categories,
+            updateScheduledTasks = appSettings,
         )
 
         val progress = restoreProgress.incrementAndFetch()
         notifier.showRestoreProgress(
-            context.stringResource(MR.strings.app_settings),
+            context.stringResource(if (appSettings) MR.strings.app_settings else MR.strings.epub_backup_data),
             progress,
             restoreAmount,
             isSync,

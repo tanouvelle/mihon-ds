@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.collectAsState
@@ -79,6 +80,13 @@ class CreateBackupScreen : Screen() {
                     }
                 },
             ) {
+                if (state.options.epubData) {
+                    item {
+                        SectionCard {
+                            Text(stringResource(MR.strings.epub_backup_hint))
+                        }
+                    }
+                }
                 if (DeviceUtil.isMiui && DeviceUtil.isMiuiOptimizationDisabled()) {
                     item {
                         WarningBanner(MR.strings.restore_miui_warning)

@@ -1223,6 +1223,8 @@
     <string name="epub_save_night">Save as night</string>
     <string name="epub_save_defaults">Use as default for new books</string>
     <string name="epub_saved">Saved</string>
+    <string name="epub_backup_hint">Includes EPUB bookmarks, reading positions, presets and appearance. Book files are not included; keep a separate copy and restore them to the same local library paths. Restoring merges bookmarks and replaces saved appearance and reading positions.</string>
+    <string name="epub_backup_data">EPUB bookmarks, reading positions and appearance</string>
     <string name="epub_apply">Apply to open book</string>
     <string name="epub_apply_error">Could not update the layout. Your previous pages are still available.</string>
     <string name="epub_reduce_flashing">Suppress page refresh flashes in EPUB books</string>

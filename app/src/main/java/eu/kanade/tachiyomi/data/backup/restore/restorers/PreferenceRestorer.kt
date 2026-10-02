@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.data.backup.restore.restorers
 
 import android.content.Context
 import android.util.Log
+import eu.kanade.tachiyomi.data.backup.EpubBackupPolicy
 import eu.kanade.tachiyomi.data.backup.create.BackupCreateJob
 import eu.kanade.tachiyomi.data.backup.models.BackupCategory
 import eu.kanade.tachiyomi.data.backup.models.BackupPreference
@@ -32,6 +33,7 @@ class PreferenceRestorer(
     suspend fun restoreApp(
         preferences: List<BackupPreference>,
         backupCategories: List<BackupCategory>?,
+        updateScheduledTasks: Boolean = true,
     ) {
         restorePreferences(
             preferences,
@@ -39,8 +41,10 @@ class PreferenceRestorer(
             backupCategories,
         )
 
-        LibraryUpdateJob.setupTask(context)
-        BackupCreateJob.setupTask(context)
+        if (updateScheduledTasks) {
+            LibraryUpdateJob.setupTask(context)
+            BackupCreateJob.setupTask(context)
+        }
     }
 
     suspend fun restoreSource(preferences: List<BackupSourcePreferences>) {
@@ -103,7 +107,14 @@ class PreferenceRestorer(
                                 backupCategoriesById,
                                 categoriesByName,
                             )
-                            if (!restored) preferenceStore.getStringSet(key).set(value.value)
+                            if (!restored) {
+                                val preference = preferenceStore.getStringSet(key)
+                                val bookmarks = EpubBackupPolicy.isBookmarkKey(key)
+                                preference.set(
+                                    if (bookmarks) EpubBackupPolicy.mergeBookmarks(preference.get(), value.value)
+                                    else value.value,
+                                )
+                            }
                         }
                     }
                 }

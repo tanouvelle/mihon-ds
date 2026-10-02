@@ -20,6 +20,12 @@ presets and an explicit default-for-new-books action. EPUB page-turn animation c
 be toggled without changing manga transitions. Animation timing uses the existing
 pager; this candidate does not add a speed slider or a page-curl effect.
 
+Backups and restore now offer an independent EPUB data option for bookmarks,
+reading positions, per-book appearance and presets. Existing backups remain readable.
+Restoring merges bookmarks, while saved appearance and positions replace current
+values. EPUB-only restores do not reschedule library updates or automatic backups.
+Book files are not embedded in backups and must be copied separately.
+
 This candidate requires CI and device verification before a public release.
 
 ---

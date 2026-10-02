@@ -78,6 +78,13 @@ class RestoreBackupScreen(
                     navigator.pop()
                 },
             ) {
+                if (state.options.epubData) {
+                    item {
+                        SectionCard {
+                            Text(stringResource(MR.strings.epub_backup_hint))
+                        }
+                    }
+                }
                 if (DeviceUtil.isMiui && DeviceUtil.isMiuiOptimizationDisabled()) {
                     item {
                         WarningBanner(MR.strings.restore_miui_warning)

@@ -9,6 +9,7 @@ data class RestoreOptions(
     val appSettings: Boolean = true,
     val extensionStores: Boolean = true,
     val sourceSettings: Boolean = true,
+    val epubData: Boolean = true,
 ) {
 
     fun asBooleanArray() = booleanArrayOf(
@@ -17,12 +18,18 @@ data class RestoreOptions(
         appSettings,
         extensionStores,
         sourceSettings,
+        epubData,
     )
 
-    fun canRestore() = libraryEntries || categories || appSettings || extensionStores || sourceSettings
+    fun canRestore() = libraryEntries || categories || appSettings || extensionStores || sourceSettings || epubData
 
     companion object {
         val options = listOf(
+            Entry(
+                label = MR.strings.epub_backup_data,
+                getter = RestoreOptions::epubData,
+                setter = { options, enabled -> options.copy(epubData = enabled) },
+            ),
             Entry(
                 label = MR.strings.label_library,
                 getter = RestoreOptions::libraryEntries,
@@ -56,6 +63,7 @@ data class RestoreOptions(
             appSettings = array[2],
             extensionStores = array[3],
             sourceSettings = array[4],
+            epubData = array.getOrElse(5) { array[2] },
         )
     }
 

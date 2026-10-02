@@ -2,9 +2,9 @@ package eu.kanade.domain.sync
 
 import eu.kanade.domain.sync.models.SyncSettings
 import eu.kanade.tachiyomi.data.sync.models.SyncTriggerOptions
+import java.util.UUID
 import tachiyomi.core.common.preference.Preference
 import tachiyomi.core.common.preference.PreferenceStore
-import java.util.UUID
 
 class SyncPreferences(
     private val preferenceStore: PreferenceStore,
@@ -53,6 +53,9 @@ class SyncPreferences(
             tracking = preferenceStore.getBoolean("tracking", true).get(),
             history = preferenceStore.getBoolean("history", true).get(),
             appSettings = preferenceStore.getBoolean("appSettings", true).get(),
+            epubData = preferenceStore.getBoolean(
+                "sync_epub_data", preferenceStore.getBoolean("appSettings", true).get(),
+            ).get(),
             extensionRepoSettings = preferenceStore.getBoolean("extensionRepoSettings", true).get(),
             sourceSettings = preferenceStore.getBoolean("sourceSettings", true).get(),
             privateSettings = preferenceStore.getBoolean("privateSettings", true).get(),
@@ -72,6 +75,7 @@ class SyncPreferences(
         preferenceStore.getBoolean("tracking", true).set(syncSettings.tracking)
         preferenceStore.getBoolean("history", true).set(syncSettings.history)
         preferenceStore.getBoolean("appSettings", true).set(syncSettings.appSettings)
+        preferenceStore.getBoolean("sync_epub_data", true).set(syncSettings.epubData)
         preferenceStore.getBoolean("extensionRepoSettings", true).set(syncSettings.extensionRepoSettings)
         preferenceStore.getBoolean("sourceSettings", true).set(syncSettings.sourceSettings)
         preferenceStore.getBoolean("privateSettings", true).set(syncSettings.privateSettings)

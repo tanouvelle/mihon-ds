@@ -14,8 +14,8 @@ import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.data.backup.create.BackupOptions
 import eu.kanade.tachiyomi.data.sync.SyncDataJob
-import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.update
 import mihon.core.viewmodel.StateViewModel
 import tachiyomi.i18n.MR
@@ -114,6 +114,7 @@ private class SyncSettingsSelectorModel(
                 tracking = syncSettings.tracking,
                 history = syncSettings.history,
                 appSettings = syncSettings.appSettings,
+                epubData = syncSettings.epubData,
                 extensionStores = syncSettings.extensionRepoSettings,
                 sourceSettings = syncSettings.sourceSettings,
                 privateSettings = syncSettings.privateSettings,
@@ -135,6 +136,7 @@ private class SyncSettingsSelectorModel(
                 tracking = backupOptions.tracking,
                 history = backupOptions.history,
                 appSettings = backupOptions.appSettings,
+                epubData = backupOptions.epubData,
                 extensionRepoSettings = backupOptions.extensionStores,
                 sourceSettings = backupOptions.sourceSettings,
                 privateSettings = backupOptions.privateSettings,

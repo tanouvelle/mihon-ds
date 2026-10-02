@@ -78,3 +78,17 @@ Bookmarks are saved only on explicit request, including in incognito mode.
 
 Do not merge/publish until CI and the relevant device checks pass. This patch does
 not increment the app version or publish a release.
+
+## EPUB backup and restore
+
+- Create a backup with only “EPUB bookmarks, reading positions and appearance” selected.
+  Restore into a clean profile with the same local books and verify bookmarks, resume
+  locations, per-book font/colour settings, presets and EPUB animation preferences.
+- Restore over a book with a newer bookmark; both locations must remain available.
+  Appearance and resume position deliberately use the values in the backup.
+- Restore an older backup created before the separate EPUB option existed.
+- Deselect EPUB data while keeping App settings selected, on both creation and
+  restoration. Existing EPUB data must remain untouched.
+- Verify scheduled backups still include EPUB data by default and the sync selector
+  saves the new option. Device-specific paths must match; this is not book-file sync.
+- Book files and ephemeral “Back to where I was” history are not included.

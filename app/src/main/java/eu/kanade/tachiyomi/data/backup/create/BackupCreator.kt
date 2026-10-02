@@ -5,6 +5,7 @@ import android.net.Uri
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.data.backup.BackupFileValidator
+import eu.kanade.tachiyomi.data.backup.EpubBackupPolicy
 import eu.kanade.tachiyomi.data.backup.create.creators.CategoriesBackupCreator
 import eu.kanade.tachiyomi.data.backup.create.creators.ExtensionStoresBackupCreator
 import eu.kanade.tachiyomi.data.backup.create.creators.MangaBackupCreator
@@ -136,9 +137,13 @@ class BackupCreator(
     }
 
     internal fun backupAppPreferences(options: BackupOptions): List<BackupPreference> {
-        if (!options.appSettings) return emptyList()
+        if (!options.appSettings && !options.epubData) return emptyList()
 
-        return preferenceBackupCreator.createApp(includePrivatePreferences = options.privateSettings)
+        return EpubBackupPolicy.select(
+            preferenceBackupCreator.createApp(includePrivatePreferences = options.privateSettings),
+            options.appSettings,
+            options.epubData,
+        )
     }
 
     internal suspend fun backupExtensionStores(options: BackupOptions): List<BackupExtensionStore> {
