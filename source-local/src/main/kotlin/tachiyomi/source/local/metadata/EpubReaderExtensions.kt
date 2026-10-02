@@ -23,8 +23,11 @@ fun EpubReader.fillMetadata(manga: SManga, chapter: SChapter) {
         date = doc.select("meta[property=dcterms:modified]").first()
     }
 
-    creator?.text()?.let { manga.author = it }
-    description?.text()?.let { manga.description = it }
+    // Preserve user-edited top-level ComicInfo details when loading EPUB chapters.
+    if (manga.author.isNullOrBlank()) {
+        getBookMetadata().authors.takeIf { it.isNotEmpty() }?.let { manga.author = it.joinToString(", ") }
+    }
+    if (manga.description.isNullOrBlank()) description?.text()?.let { manga.description = it }
 
     title?.text()?.let { chapter.name = it }
 

@@ -38,6 +38,13 @@ migrate legacy bookmarks/settings before moving them. Altered package metadata o
 text produces a new identity. This does not automatically remove duplicate library
 entries or migrate data for a book already moved before its first upgrade open.
 
+Browse > Sources now has an Import book action. It previews EPUB title, authors,
+language, series and description; title and author can be edited before copying.
+The importer checks readable local EPUBs for matching identities, writes book and
+ComicInfo metadata into a hidden staging folder and publishes it only after the
+copy completes. Original files are retained. Imported books are available in Local
+source and must be added to the library there. Import size is limited to 256 MB.
+
 This candidate requires CI and device verification before a public release.
 
 ---

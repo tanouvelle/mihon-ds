@@ -105,3 +105,20 @@ not increment the app version or publish a release.
   local folders. Mixed folders must be visible in both filtered views.
 - Classification currently relies on downloaded local chapter metadata; load or
   refresh chapter lists first. Online novel extensions are not yet supported.
+
+## Book importer
+
+- In Browse > Sources, choose Import book. Test Android document providers and
+  Downloads, cancel the picker, edit title/author, then import and open Local source.
+- Add the imported book to the library, load its chapters, and verify the Books
+  filter, author, description, reading and bookmarks work.
+- Import the same EPUB under a different filename: no additional book is copied.
+  Also check a matching manually copied EPUB and an unrelated damaged local EPUB.
+- Test missing storage setup, revoked storage access, insufficient space, invalid
+  ZIP/EPUB, an empty book, a DRM-encrypted book and a file over 256 MB.
+- On failure, the incomplete import must remain hidden or be removed; existing
+  books must remain unchanged. Check a provider that does not support directory rename.
+- Rotate during preview/import and leave/reopen the screen. Test duplicate imports
+  from two screens; only one completed copy should exist.
+- Confirm metadata containing ampersands and non-Latin characters round trips
+  through ComicInfo and that the original imported EPUB bytes remain unchanged.

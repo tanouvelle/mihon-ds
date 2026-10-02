@@ -26,7 +26,9 @@ library paths. It does not establish portable cross-device book identity.
    explicit bookmark actions, and clean-profile restoration.
 2. **Book identity and library** — partial, awaiting validation. Fingerprint-based
    EPUB reading data, legacy migration and All/Books/Manga filters are implemented.
-   Metadata, dedicated book records and duplicate detection remain planned. Introduce stable book and edition IDs,
+   EPUB file-picker import, metadata preview/title-author edits and local duplicate
+   checking are also implemented, awaiting validation. Dedicated book records and
+   full library metadata editing remain planned. Introduce stable book and edition IDs,
    author/series/language/format metadata, import history and duplicate detection.
    Migrate path-keyed bookmarks without deleting legacy records. Provide Books and
    Manga filters before changing the application's navigation hierarchy. Different

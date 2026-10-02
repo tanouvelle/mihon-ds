@@ -29,6 +29,33 @@ class EpubReaderTest {
     }
 
     @Test
+    fun `book metadata preserves multiple authors language and series`() {
+        val epub = book("Text", extraFiles = mapOf("OPS/book.opf" to """
+            <package><metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <dc:title>A &amp; B</dc:title><dc:creator>First</dc:creator><dc:creator>Second</dc:creator>
+            <dc:language>en</dc:language><dc:description>A description.</dc:description>
+            <meta property="belongs-to-collection" id="collection">Series name</meta>
+            <meta property="collection-type" refines="#collection">series</meta>
+            </metadata></package>
+        """.trimIndent()))
+        assertEquals(EpubReader.BookMetadata("A & B", listOf("First", "Second"), "en", "Series name", "A description."),
+            epub.getBookMetadata())
+    }
+
+    @Test
+    fun `metadata accepts alternate namespace prefixes and calibre series`() {
+        val epub = book("Text", extraFiles = mapOf("OPS/book.opf" to """
+            <package><metadata xmlns:d="http://purl.org/dc/elements/1.1/">
+            <d:title>Book</d:title><d:creator>Author</d:creator>
+            <meta name="calibre:series" content="Collection"/>
+            </metadata></package>
+        """.trimIndent()))
+        assertEquals("Book", epub.getBookMetadata().title)
+        assertEquals(listOf("Author"), epub.getBookMetadata().authors)
+        assertEquals("Collection", epub.getBookMetadata().series)
+    }
+
+    @Test
     fun `identity is deterministic and separates changed text in the same package`() {
         val original = book("<p>First edition</p>").getBookIdentity()
         assertEquals(original, book("<p>First edition</p>").getBookIdentity())

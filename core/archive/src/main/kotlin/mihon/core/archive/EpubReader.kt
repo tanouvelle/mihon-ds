@@ -38,6 +38,33 @@ class EpubReader internal constructor(
 
     data class TocEntry(val title: String, val target: String, val depth: Int = 0)
 
+    data class BookMetadata(
+        val title: String,
+        val authors: List<String>,
+        val language: String?,
+        val series: String?,
+        val description: String?,
+    )
+
+    fun getBookMetadata(): BookMetadata {
+        val document = getPackageDocument(getPackageHref())
+        val metadata = document.getElementsByTag("metadata").first()
+        fun values(name: String) = metadata?.children().orEmpty()
+            .filter { it.tagName().substringAfter(':') == name }
+            .map { it.text().trim() }.filter { it.isNotEmpty() }
+        val collection = metadata?.select("meta[property=belongs-to-collection]")?.firstOrNull { entry ->
+            metadata?.select("meta[property=collection-type]").orEmpty().any {
+                it.attr("refines") == "#${entry.id()}" && it.text() == "series"
+            }
+        }?.text()
+        val series = collection ?: metadata?.select("meta[name=calibre:series]")?.first()?.attr("content")
+        return BookMetadata(
+            values("title").firstOrNull().orEmpty(), values("creator").distinct(),
+            values("language").firstOrNull(), series?.takeIf { it.isNotBlank() },
+            values("description").firstOrNull(),
+        )
+    }
+
     /** Stable across external renames and ZIP recompression; distinguishes changed editions. */
     fun getBookIdentity(): String {
         val ref = getPackageHref()
