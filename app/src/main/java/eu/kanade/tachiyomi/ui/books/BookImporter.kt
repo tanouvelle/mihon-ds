@@ -17,6 +17,7 @@ import kotlinx.coroutines.sync.withLock
 import mihon.core.archive.EpubReader
 import mihon.core.archive.epubReader
 import nl.adaptivity.xmlutil.serialization.XML
+import tachiyomi.core.common.storage.extension
 import tachiyomi.core.metadata.comicinfo.COMIC_INFO_FILE
 import tachiyomi.core.metadata.comicinfo.ComicInfo
 import tachiyomi.core.metadata.comicinfo.getComicInfo
