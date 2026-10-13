@@ -96,6 +96,7 @@ class ChapterLoader(
             )
             source is LocalSource -> source.getFormat(chapter.chapter).let { format ->
                 when (format) {
+                    is Format.Pdf -> PdfPageLoader(mihon.core.archive.PdfBookReader.open(context, format.file))
                     is Format.Directory -> DirectoryPageLoader(format.file)
                     is Format.Archive -> ArchivePageLoader(format.file.archiveReader(context))
                     is Format.Epub -> EpubPageLoader(format.file.epubReader(context), dbChapter.url)

@@ -7,6 +7,7 @@ class LibraryContentTest {
     @Test
     fun `EPUB image mixed and unscanned folders remain visible in the appropriate views`() {
         assertEquals(LibraryContent(true, false), LibraryContent.fromChapterUrls(listOf("Books/a.EPUB")))
+        assertEquals(LibraryContent(true, false), LibraryContent.fromChapterUrls(listOf("Books/a.PDF")))
         assertEquals(LibraryContent(false, true), LibraryContent.fromChapterUrls(listOf("Comics/a.cbz")))
         assertEquals(LibraryContent(true, true), LibraryContent.fromChapterUrls(listOf("a.epub", "b.cbz")))
         assertEquals(LibraryContent(false, true), LibraryContent.fromChapterUrls(emptyList()))

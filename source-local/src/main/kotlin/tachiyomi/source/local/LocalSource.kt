@@ -37,7 +37,6 @@ import tachiyomi.core.metadata.comicinfo.getComicInfo
 import tachiyomi.core.metadata.tachiyomi.MangaDetails
 import tachiyomi.domain.chapter.service.ChapterRecognition
 import tachiyomi.domain.manga.model.Manga
-import tachiyomi.domain.source.model.Source as DomainSource
 import tachiyomi.i18n.MR
 import tachiyomi.source.local.filter.OrderBy
 import tachiyomi.source.local.image.LocalCoverManager
@@ -46,6 +45,7 @@ import tachiyomi.source.local.io.Format
 import tachiyomi.source.local.io.LocalSourceFileSystem
 import tachiyomi.source.local.metadata.fillMetadata
 import uy.kohesive.injekt.injectLazy
+import tachiyomi.domain.source.model.Source as DomainSource
 
 class LocalSource(
     private val context: Context,
@@ -219,6 +219,7 @@ class LocalSource(
     }
 
     private fun <T> getComicInfoForChapter(chapter: UniFile, block: (InputStream) -> T): T? {
+        if (chapter.extension.equals("pdf", true)) return null
         return if (chapter.isDirectory) {
             chapter.findFile(COMIC_INFO_FILE)?.openInputStream()?.use(block)
         } else {
@@ -269,7 +270,7 @@ class LocalSource(
         val chapters = fileSystem.getFilesInMangaDirectory(manga.url)
             // Only keep supported formats
             .filterNot { it.name.orEmpty().startsWith('.') }
-            .filter { it.isDirectory || Archive.isSupported(it) || it.extension.equals("epub", true) }
+            .filter { it.isDirectory || Archive.isSupported(it) || it.extension?.lowercase() in setOf("epub", "pdf") }
             .map { chapterFile ->
                 SChapter.create().apply {
                     url = "${manga.url}/${chapterFile.name}"
@@ -355,6 +356,11 @@ class LocalSource(
                         }
 
                         entry?.let { coverManager.update(manga, reader.getInputStream(it.name)!!) }
+                    }
+                }
+                is Format.Pdf -> {
+                    mihon.core.archive.PdfBookReader.open(context, format.file).use { pdf ->
+                        pdf.pageStream(0).use { coverManager.update(manga, it) }
                     }
                 }
                 is Format.Epub -> {

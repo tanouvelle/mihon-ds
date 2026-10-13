@@ -28,7 +28,7 @@ internal class BookImporter(
     private val storageManager: StorageManager,
     private val xml: XML,
 ) {
-    data class Prepared(val file: File, val identity: String, val metadata: EpubReader.BookMetadata)
+    data class Prepared(val file: File, val identity: String, val metadata: EpubReader.BookMetadata, val extension: String = "epub")
     data class Result(val duplicate: Boolean)
     class StorageUnavailable : IOException()
 
@@ -38,6 +38,16 @@ internal class BookImporter(
             val input = context.contentResolver.openInputStream(uri) ?: throw IOException("Cannot open document")
             input.use { source -> file.outputStream().use { copyBookBytes(source, it) } }
             val archive = UniFile.fromUri(context, file.toUri()) ?: throw IOException("Cannot open staged book")
+            val isPdf = file.inputStream().use { input ->
+                val header = ByteArray(5)
+                input.read(header) == 5 && header.toString(Charsets.US_ASCII) == "%PDF-"
+            }
+            if (isPdf) {
+                mihon.core.archive.PdfBookReader.open(context, archive).use { it.pageStream(0).close() }
+                val name = UniFile.fromUri(context, uri)?.name?.substringBeforeLast('.')?.takeIf { it.isNotBlank() }
+                    ?: "PDF book"
+                return Prepared(file, pdfIdentity(archive), EpubReader.BookMetadata(name, emptyList(), null, null, null), "pdf")
+            }
             return archive.epubReader(context).use { reader ->
                 val identity = reader.getBookIdentity()
                 require(reader.getContent().any { it is EpubReader.Content.Text || it is EpubReader.Content.Image }) {
@@ -58,10 +68,10 @@ internal class BookImporter(
             coroutineContext.ensureActive()
             if (!directory.isDirectory || directory.name.orEmpty().startsWith('.')) continue
             for (file in directory.listFiles().orEmpty()) {
-                if (!file.extension.equals("epub", true)) continue
+                if (!file.extension.equals(prepared.extension, true)) continue
                 coroutineContext.ensureActive()
                 val identity = try {
-                    file.epubReader(context).use { it.getBookIdentity() }
+                    if (prepared.extension == "pdf") pdfIdentity(file) else file.epubReader(context).use { it.getBookIdentity() }
                 } catch (e: Exception) {
                     if (e is CancellationException) throw e
                     null // An unreadable existing file must not block a different import.
@@ -75,7 +85,7 @@ internal class BookImporter(
         val staging = root.createDirectory(".book-import-${UUID.randomUUID()}") ?: throw StorageUnavailable()
         var published = false
         try {
-            val book = staging.createFile("book.epub") ?: throw IOException("Cannot create book")
+            val book = staging.createFile("book.${prepared.extension}") ?: throw IOException("Cannot create book")
             prepared.file.inputStream().use { source -> book.openOutputStream().use { copyBookBytes(source, it) } }
             val manga = SManga.create().apply {
                 this.title = title
@@ -92,6 +102,19 @@ internal class BookImporter(
         } finally {
             if (!published) staging.delete()
         }
+    }
+
+    private fun pdfIdentity(file: UniFile): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        file.openInputStream().use { input ->
+            val buffer = ByteArray(65536)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        return "pdf-v1:" + digest.digest().joinToString("") { "%02x".format(it) }
     }
 
     private companion object {

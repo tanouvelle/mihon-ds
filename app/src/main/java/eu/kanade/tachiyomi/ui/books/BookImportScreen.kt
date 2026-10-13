@@ -47,7 +47,7 @@ class BookImportScreen : Screen() {
             ) {
                 Text(stringResource(MR.strings.book_import_hint))
                 Button(enabled = !state.busy, onClick = {
-                    picker.launch(arrayOf("application/epub+zip", "application/octet-stream", "application/zip"))
+                    picker.launch(arrayOf("application/pdf", "application/epub+zip", "application/octet-stream", "application/zip"))
                 }) { Text(stringResource(MR.strings.book_import_choose)) }
                 if (state.busy) {
                     CircularProgressIndicator()
