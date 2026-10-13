@@ -38,7 +38,12 @@ internal fun ColumnScope.EpubSettingsPage(
     prefs: ReaderPreferences,
     onApplyLayout: () -> Unit,
     onOpenText: () -> Unit,
+    onOpenOriginal: () -> Unit,
 ) {
+    TextButton(onClick = onOpenOriginal, modifier = Modifier.padding(horizontal = 16.dp)) {
+        Text(stringResource(MR.strings.epub_original_mode))
+    }
+    Text(stringResource(MR.strings.epub_original_hint), modifier = Modifier.padding(horizontal = 24.dp))
     TextButton(onClick = onOpenText, modifier = Modifier.padding(horizontal = 16.dp)) {
         Text(stringResource(MR.strings.epub_text_mode))
     }

@@ -22,6 +22,7 @@ class EpubReader internal constructor(
 
     fun getInputStream(entryName: String): InputStream? = openEntry(entryName)
 
+    @Synchronized
     override fun close() = closeReader()
 
     sealed interface Content {
@@ -87,6 +88,49 @@ class EpubReader internal constructor(
             digest.update(entryDigest.digest())
         }
         return "epub-v1:" + digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    data class OriginalDocument(val path: String, val title: String)
+    data class OriginalResource(val path: String, val mimeType: String)
+
+    /** Publisher documents in spine order, with their original CSS, SVG, fonts and images. */
+    fun getOriginalDocuments(): List<OriginalDocument> {
+        val ref = getPackageHref()
+        val toc = getTableOfContents()
+        return getPagesFromDocument(getPackageDocument(ref)).mapIndexed { index, href ->
+            val path = resolveZipPath(getParentDirectory(ref), href)
+            val title = toc.firstOrNull { it.target.substringBefore('#') == path }?.title
+                ?: "${index + 1}"
+            OriginalDocument(path.replace('\\', '/'), title)
+        }
+    }
+
+    fun getOriginalResources(): List<OriginalResource> {
+        val ref = getPackageHref()
+        return getPackageDocument(ref).select("manifest > item").mapNotNull { item ->
+            val href = item.attr("href")
+            if (href.isBlank() || !isLocalReference(href)) return@mapNotNull null
+            OriginalResource(resolveZipPath(getParentDirectory(ref), href).replace('\\', '/'), item.attr("media-type"))
+        }
+    }
+
+    @Synchronized
+    fun readOriginalResource(path: String, limit: Int = 16 * 1024 * 1024): ByteArray? {
+        require(path == resolveZipPath("", path).replace('\\', '/')) { "Invalid EPUB path" }
+        val stream = getInputStream(path.replace("/", pathSeparator)) ?: return null
+        return stream.use { input ->
+            val output = java.io.ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            var total = 0
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                total += count
+                require(total <= limit) { "EPUB resource exceeds size limit" }
+                output.write(buffer, 0, count)
+            }
+            output.toByteArray()
+        }
     }
 
     fun getContent(): List<Content> {

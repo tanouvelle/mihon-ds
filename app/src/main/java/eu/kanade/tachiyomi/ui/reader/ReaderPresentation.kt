@@ -248,6 +248,17 @@ class ReaderPresentation(
             }
         }
 
+        if (state.dialog == ReaderViewModel.Dialog.EpubOriginal) {
+            androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize()) {
+                androidx.compose.foundation.layout.Column {
+                    androidx.compose.material3.Text(tachiyomi.presentation.core.i18n.stringResource(tachiyomi.i18n.MR.strings.epub_original_companion))
+                    androidx.compose.material3.TextButton(onClick = activity.viewModel::openEpubTextReader) {
+                        androidx.compose.material3.Text(tachiyomi.presentation.core.i18n.stringResource(tachiyomi.i18n.MR.strings.epub_text_mode))
+                    }
+                }
+            }
+            return
+        }
         Box(modifier = Modifier.fillMaxSize()) {
             if (readingMode.type == ReadingMode.ViewerType.Webtoon && state.viewer is WebtoonViewer) {
                 WebtoonSpannedContent(activity, state.viewer as WebtoonViewer)
@@ -615,8 +626,8 @@ class ReaderPresentation(
     private fun setupGestureDetector() {
         gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean {
-                // Must return true for onFling to work
-                return true
+                // Original mode has its own primary-screen navigation.
+                return activity.viewModel.state.value.dialog != ReaderViewModel.Dialog.EpubOriginal
             }
 
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {

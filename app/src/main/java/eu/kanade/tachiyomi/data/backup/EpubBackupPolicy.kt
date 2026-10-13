@@ -5,11 +5,11 @@ import eu.kanade.tachiyomi.data.backup.models.BackupPreference
 /** Keeps book data independently selectable in both old and new backup files. */
 internal object EpubBackupPolicy {
     private val appearance = setOf(
-        "font", "font_size", "theme", "line_spacing", "paragraph_spacing", "margin", "compact_pages",
+        "font", "font_size", "theme", "line_spacing", "paragraph_spacing", "margin", "compact_pages", "original_formatting",
     )
     private val perBook = Regex("epub_[0-9a-f]{64}_reader_epub_(.+)")
     private val migration = Regex("reader_epub_migrated_[0-9a-f]{64}_[0-9a-f]{64}")
-    private val location = Regex("reader_epub_(position|bookmarks)_[0-9a-f]{64}")
+    private val location = Regex("reader_epub_(position|bookmarks|original_position)_[0-9a-f]{64}")
 
     fun isEpubKey(key: String): Boolean =
         key == "epub_reduce_flashing" || key == "reader_epub_animate_pages" ||

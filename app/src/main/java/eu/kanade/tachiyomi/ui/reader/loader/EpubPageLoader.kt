@@ -40,6 +40,23 @@ internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) :
     val bookmarks = preferences.epubBookmarks(stableBookKey)
     private val savedPosition = preferences.epubReadingPosition(stableBookKey)
     private var layout = newLayout()
+    val originalDocuments by lazy { reader.getOriginalDocuments() }
+    val originalResources by lazy { reader.getOriginalResources().associateBy { it.path } }
+    val originalContents by lazy { reader.getTableOfContents() }
+    val originalPosition = rootPreferences.epubOriginalPosition(stableBookKey)
+    fun originalResource(path: String): ByteArray? = if (isRecycled) null else reader.readOriginalResource(path)
+    fun originalDocumentForPage(index: Int): Int = originalDocuments.indexOfLast {
+        layout.pageForTarget(it.path)?.let { page -> page <= index } == true
+    }.coerceAtLeast(0)
+    fun pageForOriginalDocument(index: Int): Int? = originalDocuments.getOrNull(index)?.let {
+        layout.pageForTarget(it.path)
+    }
+    fun pageForOriginalPosition(index: Int, fraction: Float): Int? {
+        val start = pageForOriginalDocument(index) ?: return null
+        val end = (originalDocuments.indices.drop(index + 1).mapNotNull(::pageForOriginalDocument)
+            .firstOrNull { it > start }?.minus(1) ?: (layout.pageCount - 1)).coerceAtLeast(start)
+        return start + ((end - start) * fraction.coerceIn(0f, 1f)).toInt()
+    }
     val contents: List<EpubChapterLink> get() = layout.contents
     val backgroundColor: Int get() = layout.background
     val textAppearance: EpubAppearance get() = layout.appearance
@@ -52,6 +69,10 @@ internal class EpubPageLoader(private val reader: EpubReader, bookKey: String) :
     private fun newLayout() = EpubLayout(reader, preferences) { isRecycled }
 
     override suspend fun getPages(): List<ReaderPage> = layout.getPages().also {
+        // Resolve metadata off the UI thread before opening a WebView.
+        originalDocuments
+        originalResources
+        originalContents
         if (it.isNotEmpty()) layout.appearance.applyTo(preferences)
     }
 
@@ -135,6 +156,10 @@ private class EpubLayout(
         3 -> Color.BLACK
         else -> Color.WHITE
     }
+
+    val pageCount: Int get() = renderedPages.size
+    private var targetPages: Map<String, Int> = emptyMap()
+    fun pageForTarget(target: String): Int? = targetPages[target.replace('\\', '/')]
 
     var contents: List<EpubChapterLink> = emptyList()
         private set
@@ -243,6 +268,7 @@ private class EpubLayout(
         }
         contents = links.ifEmpty { fallbackContents }.distinctBy { it.title to it.pageIndex }
 
+        targetPages = targets.mapKeys { it.key.replace('\\', '/') }
         renderedPages = pages.toList()
         searchableText = sourceText.toString()
         return pages.mapIndexed { index, item ->

@@ -85,6 +85,11 @@ class ReaderPreferences(
     val readerTheme: Preference<Int> = preferenceStore.getInt("pref_reader_theme_key", 1)
 
     /** EPUB appearance: per-book overrides fall back to the defaults for new books. */
+    val epubOriginalFormatting = preferenceStore.getBoolean(epubBookPrefix + "reader_epub_original_formatting", true)
+
+    fun epubOriginalPosition(bookKey: String): Preference<String> =
+        preferenceStore.getString("reader_epub_original_position_${epubBookId(bookKey)}", "")
+
     val epubFont: Preference<Int> = epubInt("reader_epub_font", 0)
     val epubFontSize: Preference<Int> = epubInt("reader_epub_font_size", 38)
     val epubTheme: Preference<Int> = epubInt("reader_epub_theme", 0)

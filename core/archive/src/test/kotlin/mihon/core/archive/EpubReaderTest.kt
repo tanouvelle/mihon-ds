@@ -29,6 +29,23 @@ class EpubReaderTest {
     }
 
     @Test
+    fun `original documents preserve code whitespace tables and image placement`() {
+        val body = "<pre>int main() {\n    return 0;\n}</pre><table><tr><td>A</td><td>B</td></tr></table><img src='../images/diagram.svg'/>"
+        val epub = book(body, extraManifest = "<item id='diagram' href='images/diagram.svg' media-type='image/svg+xml'/>",
+            extraFiles = mapOf("OPS/images/diagram.svg" to "<svg/>"))
+        assertEquals(listOf("OPS/text/chapter.xhtml"), epub.getOriginalDocuments().map { it.path })
+        assertEquals("<html><body>$body</body></html>", epub.readOriginalResource("OPS/text/chapter.xhtml")!!.toString(Charsets.UTF_8))
+        assertTrue(epub.getOriginalResources().any { it.path == "OPS/images/diagram.svg" && it.mimeType == "image/svg+xml" })
+    }
+
+    @Test
+    fun `original resource reads are bounded and reject traversal`() {
+        val epub = book("<p>Text</p>")
+        assertThrows(IllegalArgumentException::class.java) { epub.readOriginalResource("../outside.xhtml") }
+        assertThrows(IllegalArgumentException::class.java) { epub.readOriginalResource("OPS/text/chapter.xhtml", 5) }
+    }
+
+    @Test
     fun `book metadata preserves multiple authors language and series`() {
         val epub = book("Text", extraFiles = mapOf("OPS/book.opf" to """
             <package><metadata xmlns:dc="http://purl.org/dc/elements/1.1/">

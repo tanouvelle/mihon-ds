@@ -850,8 +850,16 @@ class ReaderViewModel @JvmOverloads constructor(
         }
     }
 
+    fun openEpubOriginalReader() {
+        val epub = state.value.currentChapter?.pageLoader as? EpubPageLoader ?: return
+        epub.preferences.epubOriginalFormatting.set(true)
+        mutableState.update { it.copy(dialog = Dialog.EpubOriginal) }
+    }
+
     fun openEpubTextReader() {
-        if (state.value.currentChapter?.pageLoader is EpubPageLoader) {
+        val epub = state.value.currentChapter?.pageLoader as? EpubPageLoader
+        if (epub != null) {
+            epub.preferences.epubOriginalFormatting.set(false)
             mutableState.update { it.copy(dialog = Dialog.EpubText) }
         }
     }
@@ -1048,6 +1056,7 @@ class ReaderViewModel @JvmOverloads constructor(
 
     sealed interface Dialog {
         data object Loading : Dialog
+        data object EpubOriginal : Dialog
         data object EpubText : Dialog
         data object Settings : Dialog
         data object ReadingModeSelect : Dialog

@@ -1260,6 +1260,14 @@
     <string name="book_import_invalid">Could not read this book. Choose an unencrypted EPUB or PDF with readable pages.</string>
     <string name="book_import_storage">Set your app storage folder in Settings, then try again.</string>
     <string name="book_import_failed">Could not finish the import. Check free space and storage permission, then retry. No existing book was overwritten.</string>
+    <string name="epub_original_mode">Original formatting</string>
+    <string name="epub_original_hint">Keep the publisher’s HTML, styles, images, tables and code together. Pinch to zoom. Font and theme controls apply to text mode.</string>
+    <string name="epub_original_companion">Original EPUB formatting is shown on the main screen. PDF pages and text mode can use paired screens.</string>
+    <string name="epub_original_close">Close</string>
+    <string name="epub_original_section">Section %1$d of %2$d</string>
+    <string name="epub_original_error">Could not display this book section. Try text mode or another section.</string>
+    <string name="epub_original_previous">Previous</string>
+    <string name="epub_original_next">Next</string>
     <string name="epub_text_mode">Selectable text</string>
     <string name="epub_text_close">Back to pages</string>
     <string name="epub_text_search">Search this book</string>

@@ -47,6 +47,13 @@ class EpubBackupTest {
     }
 
     @Test
+    fun `original formatting and browser position belong to EPUB backup data`() {
+        assertTrue(EpubBackupPolicy.isEpubKey("epub_${id}_reader_epub_original_formatting"))
+        assertTrue(EpubBackupPolicy.isEpubKey("reader_epub_original_position_$id"))
+        assertFalse(EpubBackupPolicy.isBookmarkKey("reader_epub_original_position_$id"))
+    }
+
+    @Test
     fun `creator and protobuf retain bookmarks and settings without schema changes`() {
         val store = mockk<PreferenceStore>()
         every { store.getAll() } returns mapOf(

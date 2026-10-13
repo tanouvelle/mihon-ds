@@ -60,6 +60,7 @@ import eu.kanade.core.util.ifSourcesLoaded
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.presentation.reader.DisplayRefreshHost
 import eu.kanade.presentation.reader.EpubTextReader
+import eu.kanade.presentation.reader.EpubOriginalReader
 import eu.kanade.presentation.reader.OrientationSelectDialog
 import eu.kanade.presentation.reader.ReaderContentOverlay
 import eu.kanade.presentation.reader.ReaderPageActionsDialog
@@ -189,6 +190,7 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
     private val windowInsetsController by lazy { WindowInsetsControllerCompat(window, window.decorView) }
 
     private var loadingIndicator: ReaderProgressIndicator? = null
+    private var originalEpubNavigation: ((Boolean) -> Unit)? = null
     private var controlsPresentation: ReaderControlsPresentation? = null
     private var readerPresentation: ReaderPresentation? = null
     private val readerInputMotionEventLatch = ReaderInputMotionEventLatch()
@@ -650,8 +652,40 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
             }
         }
 
+        val originalLoader = state.currentChapter?.pageLoader as? EpubPageLoader
+        val automaticOriginal = androidx.compose.runtime.remember(originalLoader) { androidx.compose.runtime.mutableStateOf(false) }
+        androidx.compose.runtime.LaunchedEffect(originalLoader, state.dialog) {
+            if (originalLoader != null && state.dialog == null && !automaticOriginal.value) {
+                automaticOriginal.value = true
+                if (originalLoader.preferences.epubOriginalFormatting.get()) viewModel.openEpubOriginalReader()
+            }
+        }
         val onDismissRequest = viewModel::closeDialog
         when (state.dialog) {
+            ReaderViewModel.Dialog.EpubOriginal -> {
+                if (originalLoader != null) EpubOriginalReader(
+                    loader = originalLoader,
+                    initialPage = (state.currentPage - 1).coerceAtLeast(0),
+                    onDocumentChange = { index ->
+                        val chapter = viewModel.state.value.currentChapter
+                        if (chapter?.pageLoader === originalLoader) originalLoader.pageForOriginalDocument(index)?.let { pageIndex ->
+                            chapter?.pages?.getOrNull(pageIndex)?.let(viewModel::onPageSelected)
+                        }
+                    },
+                    onProgress = { index, fraction ->
+                        val chapter = viewModel.state.value.currentChapter
+                        if (chapter?.pageLoader === originalLoader) originalLoader.pageForOriginalPosition(index, fraction)?.let { pageIndex ->
+                            chapter?.pages?.getOrNull(pageIndex)?.let(viewModel::onPageSelected)
+                        }
+                    },
+                    onNavigationChange = { originalEpubNavigation = it },
+                    onTextMode = viewModel::openEpubTextReader,
+                    onDismiss = {
+                        viewModel.closeDialog()
+                        moveToPageIndex((viewModel.state.value.currentPage - 1).coerceAtLeast(0))
+                    },
+                )
+            }
             ReaderViewModel.Dialog.EpubText -> {
                 val epub = state.currentChapter?.pageLoader as? EpubPageLoader
                 if (epub != null) EpubTextReader(
@@ -700,6 +734,7 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
                     viewModel = settingsViewModel,
                     onApplyEpubLayout = viewModel::applyEpubLayout,
                     onOpenEpubText = viewModel::openEpubTextReader,
+                    onOpenEpubOriginal = viewModel::openEpubOriginalReader,
                     epubContents = epub?.contents,
                     epubPreferences = epub?.preferences,
                     epubCurrentPage = (state.currentPage - 1).coerceAtLeast(0),
@@ -1283,6 +1318,7 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
      * Loads the next page. If at the end of the chapter, loads the next chapter.
      */
     fun loadNextPage() {
+        originalEpubNavigation?.let { it(true); return }
         val viewer = viewModel.state.value.viewer ?: return
         if (!viewer.moveToNext()) {
             loadNextChapter()
@@ -1293,6 +1329,7 @@ class ReaderActivity : BaseActivity(), ReaderActionTarget {
      * Loads the previous page. If at the start of the chapter, loads the previous chapter.
      */
     fun loadPreviousPage() {
+        originalEpubNavigation?.let { it(false); return }
         val viewer = viewModel.state.value.viewer ?: return
         if (!viewer.moveToPrevious()) {
             loadPreviousChapter()
