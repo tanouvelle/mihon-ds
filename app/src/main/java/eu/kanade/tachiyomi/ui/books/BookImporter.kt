@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.core.net.toUri
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.source.model.SManga
-import eu.kanade.tachiyomi.util.storage.DiskUtil
 import java.io.File
 import java.io.IOException
 import java.util.UUID
@@ -28,7 +27,7 @@ internal class BookImporter(
     private val storageManager: StorageManager,
     private val xml: XML,
 ) {
-    data class Prepared(val file: File, val identity: String, val metadata: EpubReader.BookMetadata, val extension: String = "epub")
+    data class Prepared(val file: File, val identity: String, val metadata: EpubReader.BookMetadata, val extension: String = "epub", val cover: ByteArray? = null)
     data class Result(val duplicate: Boolean)
     class StorageUnavailable : IOException()
 
@@ -79,18 +78,23 @@ internal class BookImporter(
                 if (identity == prepared.identity) return@withLock Result(duplicate = true)
             }
         }
-        val name = DiskUtil.buildValidFilename(title, 160) + " [${prepared.identity.takeLast(12)}]"
+        val stem = bookImportStem(title, author)
+        val name = stem + " [${prepared.identity.takeLast(12)}]"
         // Never overwrite another folder, including one left by a differently named book.
         if (root.findFile(name) != null) throw IOException("Destination already exists")
         val staging = root.createDirectory(".book-import-${UUID.randomUUID()}") ?: throw StorageUnavailable()
         var published = false
         try {
-            val book = staging.createFile("book.${prepared.extension}") ?: throw IOException("Cannot create book")
+            val book = staging.createFile("$stem.${prepared.extension}") ?: throw IOException("Cannot create book")
             prepared.file.inputStream().use { source -> book.openOutputStream().use { copyBookBytes(source, it) } }
             val manga = SManga.create().apply {
                 this.title = title
                 this.author = author.takeIf { it.isNotBlank() }
                 description = prepared.metadata.description
+            }
+            prepared.cover?.let { bytes ->
+                val cover = staging.createFile("cover.jpg") ?: throw IOException("Cannot create cover")
+                cover.openOutputStream().use { it.write(bytes) }
             }
             val metadata = xml.encodeToString(ComicInfo.serializer(), manga.getComicInfo())
             val info = staging.createFile(COMIC_INFO_FILE) ?: throw IOException("Cannot create metadata")

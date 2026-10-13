@@ -35,8 +35,11 @@ class BookImportScreen : Screen() {
         val navigator = LocalNavigator.currentOrThrow
         val model = viewModel<BookImportViewModel>()
         val state by model.state.collectAsState()
-        val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            uri?.let(model::prepare)
+        val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+            model.prepareMany(uris)
+        }
+        val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            uri?.let(model::prepareFolder)
         }
         Scaffold(topBar = {
             AppBar(title = stringResource(MR.strings.book_import), navigateUp = navigator::pop, scrollBehavior = it)
@@ -49,9 +52,21 @@ class BookImportScreen : Screen() {
                 Button(enabled = !state.busy, onClick = {
                     picker.launch(arrayOf("application/pdf", "application/epub+zip", "application/octet-stream", "application/zip"))
                 }) { Text(stringResource(MR.strings.book_import_choose)) }
+                Button(enabled = !state.busy, onClick = { folderPicker.launch(null) }) {
+                    Text(stringResource(MR.strings.book_import_folder))
+                }
+                if (state.total > 0) {
+                    Text(stringResource(MR.strings.book_import_batch_position, (state.index + 1).coerceAtMost(state.total), state.total))
+                    Text(stringResource(MR.strings.book_import_batch_summary, state.imported, state.duplicates, state.skipped))
+                }
+                if (state.truncated) Text(stringResource(MR.strings.book_import_batch_limit))
+                if (state.complete) Text(stringResource(MR.strings.book_import_batch_complete))
                 if (state.busy) {
                     CircularProgressIndicator()
                     Text(stringResource(MR.strings.book_import_working))
+                }
+                if (!state.complete && (state.busy || state.total > 0)) {
+                    Button(onClick = model::cancelBatch) { Text(stringResource(MR.strings.book_import_cancel_batch)) }
                 }
                 state.error?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
                 state.metadata?.let { metadata ->
@@ -67,15 +82,38 @@ class BookImportScreen : Screen() {
                     )
                     metadata.language?.let { Text(stringResource(MR.strings.book_import_language, it)) }
                     metadata.series?.let { Text(stringResource(MR.strings.book_import_series, it)) }
+                    if (state.coverFound) Text(stringResource(MR.strings.book_import_cover_found))
                     metadata.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
                     if (!state.finished) {
+                        Text(stringResource(MR.strings.book_import_lookup_hint))
+                        Button(enabled = !state.busy && state.title.isNotBlank(), onClick = model::lookupMetadata) {
+                            Text(stringResource(MR.strings.book_import_lookup))
+                        }
+                        if (state.lookupFailed) Text(stringResource(MR.strings.book_import_lookup_failed))
+                        if (state.lookedUp && state.matches.isEmpty()) Text(stringResource(MR.strings.book_import_lookup_empty))
+                        state.matches.forEach { match ->
+                            Button(enabled = !state.busy, onClick = { model.useMatch(match) }) {
+                                Text(listOf(match.title, match.author, match.year).filter { it.isNotBlank() }.joinToString(" — "))
+                            }
+                        }
                         Button(enabled = !state.busy && state.title.isNotBlank(), onClick = model::importBook) {
                             Text(stringResource(MR.strings.book_import_confirm))
                         }
+                        if (state.total > state.index + 1) {
+                            Text(stringResource(MR.strings.book_import_remaining_hint))
+                            Button(enabled = !state.busy && state.title.isNotBlank(), onClick = model::importRemaining) {
+                                Text(stringResource(MR.strings.book_import_remaining))
+                            }
+                        }
                     }
                 }
-                if (state.finished) {
-                    Text(stringResource(if (state.duplicate) MR.strings.book_import_duplicate else MR.strings.book_import_done))
+                if (state.total > 0 && !state.complete) {
+                    Button(enabled = !state.busy, onClick = model::next) {
+                        Text(stringResource(if (state.finished) MR.strings.book_import_next else MR.strings.book_import_skip))
+                    }
+                }
+                if (state.finished || state.complete) {
+                    if (state.finished) Text(stringResource(if (state.duplicate) MR.strings.book_import_duplicate else MR.strings.book_import_done))
                     Button(onClick = { navigator.push(BrowseSourceScreen(LocalSource.ID, null)) }) {
                         Text(stringResource(MR.strings.book_import_open_local))
                     }
